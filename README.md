@@ -9,6 +9,7 @@ references, templates, and helper scripts.
 | Directory | Skill | Purpose |
 | --- | --- | --- |
 | [`bme_cluster`](bme_cluster/) | `bme-cluster` | Prepare, submit, monitor, and debug Slurm CPU/GPU jobs on the BME cluster while enforcing its node, network, storage, and resource-allocation constraints. |
+| [`paper-algorithm-tutorial`](paper-algorithm-tutorial/) | `paper-algorithm-tutorial` | Turn a research paper into a Chinese hands-on implementation course with microtasks, layered hints, reference solutions, a runnable practice model and mechanism checks. Includes an adapter for the tutorial repository. |
 
 ## Use a skill locally
 
@@ -21,6 +22,12 @@ cp -a bme_cluster ~/.agents/skills/bme-cluster
 
 Then invoke it as `$bme-cluster` where supported. Read the skill's `SKILL.md`
 before using its templates or helper scripts.
+
+For paper tutorials, invoke `$paper-algorithm-tutorial I-JEPA`. In the existing
+tutorial workspace, a paper name alone also uses its project instructions.
+Keep this repository's skill directory as the maintained source and copy the
+complete folder to `~/.agents/skills/paper-algorithm-tutorial` after updates;
+verify the copies match. The installed folder is a separate file copy, not a symlink.
 
 ## Repository layout
 

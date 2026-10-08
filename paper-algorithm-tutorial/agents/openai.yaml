@@ -1,0 +1,7 @@
+interface:
+  display_name: "论文算法动手教程"
+  short_description: "将论文机制拆成中文分步练习、分层提示与可验证的从零实现教程"
+  default_prompt: "使用 $paper-algorithm-tutorial 为指定论文制作中文从零实现教程，包含分步练习、分层提示与可运行的训练闭环。"
+
+policy:
+  allow_implicit_invocation: true
