@@ -1,0 +1,7 @@
+interface:
+  display_name: "科研发现复现实验室"
+  short_description: "重建论文的发现过程，先预测再用 toy 实验与可视化亲历，持续培养科研 taste"
+  default_prompt: "使用 $research-discovery-lab 为这篇论文开一个 topic：先让我预测，再重建作者的发现过程，设计 toy 实验与可视化，写出可交给 Codex 执行的 PLAN.md。"
+
+policy:
+  allow_implicit_invocation: true

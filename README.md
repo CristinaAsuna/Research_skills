@@ -10,6 +10,7 @@ references, templates, and helper scripts.
 | --- | --- | --- |
 | [`bme_cluster`](bme_cluster/) | `bme-cluster` | Prepare, submit, monitor, and debug Slurm CPU/GPU jobs on the BME cluster while enforcing its node, network, storage, and resource-allocation constraints. |
 | [`paper-algorithm-tutorial`](paper-algorithm-tutorial/) | `paper-algorithm-tutorial` | Turn a research paper into a Chinese hands-on implementation course with microtasks, layered hints, reference solutions, a runnable practice model and mechanism checks. Includes an adapter for the tutorial repository. |
+| [`research-discovery-lab`](research-discovery-lab/) | `research-discovery-lab` | Reconstruct how a paper's idea was discovered, have the user predict first, then replay it with toy experiments and figures in a workspace with planner/executor/reviewer roles, frozen predictions, a growth log and approval-gated harness self-improvement (RSI). |
 
 ## Use a skill locally
 
