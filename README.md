@@ -9,6 +9,7 @@ references, templates, and helper scripts.
 | Directory | Skill | Purpose |
 | --- | --- | --- |
 | [`bme_cluster`](bme_cluster/) | `bme-cluster` | Prepare, submit, monitor, and debug Slurm CPU/GPU jobs on the BME cluster while enforcing its node, network, storage, and resource-allocation constraints. |
+| [`lab-machines`](lab-machines/) | `lab-machines` | Coordinate the Mac (orchestration), the Windows/WSL PC (data hub, RTX 3060) and the BME cluster: routing, announce-before-execute, a shared git record of runs and ad-hoc work, and large-file transfer that bypasses the Mac. |
 | [`paper-algorithm-tutorial`](paper-algorithm-tutorial/) | `paper-algorithm-tutorial` | Turn a research paper into a Chinese hands-on implementation course with microtasks, layered hints, reference solutions, a runnable practice model and mechanism checks. Includes an adapter for the tutorial repository. |
 | [`research-discovery-lab`](research-discovery-lab/) | `research-discovery-lab` | Reconstruct how a paper's idea was discovered, have the user predict first, then replay it with toy experiments and figures in a workspace with planner/executor/reviewer roles, frozen predictions, a growth log and approval-gated harness self-improvement (RSI). |
 

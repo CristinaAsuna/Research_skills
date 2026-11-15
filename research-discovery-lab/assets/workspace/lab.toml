@@ -5,6 +5,15 @@ python = "{{PYTHON}}"
 assets = "assets"          # 工作区自有资产，不进 git
 readonly_assets = []       # 只读复用的已下载权重/数据目录（绝对路径）
 
+# 每台机器一节；本机标识来自 ~/.config/lab/machine。python 指运行实验和 tools/lab.py 的解释器（≥3.11）。
+# runs_root 为空时，运行目录放在 topic 的 runs/ 下。
+[machines.mac]
+role = "指挥台：规划、写代码、分析；不放数据、权重和缓存"
+ssh = ""
+repo = ""
+python = "{{PYTHON}}"
+runs_root = ""
+
 [skill]
 path = "{{SKILL_PATH}}"
 

@@ -1,6 +1,7 @@
 """Tests for scripts/lab.py and scripts/figstyle.py in temporary workspaces."""
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -14,8 +15,9 @@ PLACEHOLDER = re.compile(r"【待填[^】]*】")
 DATE = "2026-11-03"
 
 
-def run(*args):
-    return subprocess.run([sys.executable, str(LAB), *args], capture_output=True, text=True)
+def run(*args, machine=None):
+    env = {**os.environ, "LAB_MACHINE": machine} if machine else None
+    return subprocess.run([sys.executable, str(LAB), *args], capture_output=True, text=True, env=env)
 
 
 class LabTest(unittest.TestCase):
@@ -191,6 +193,43 @@ class LabTest(unittest.TestCase):
         result = self.check(topic)
         self.assertEqual(result.returncode, 1)
         self.assertIn("runs/ 没有被 git 忽略", result.stdout)
+
+    def test_run_records_log_and_journal(self):
+        topic = self.plan_topic()
+        (topic / "code" / "run.py").write_text("print('hi')\n", encoding="utf-8")
+        start = ["run", "start", str(topic), "--exp", "E1", "--root", str(self.root), "--", "python", "code/run.py"]
+        refused = run(*start, machine="pc")
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("未提交", refused.stderr)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "code")
+        started = run(*start, machine="pc")
+        self.assertEqual(started.returncode, 0, started.stdout + started.stderr)
+        records = list((topic / "results" / "runs").glob("*.json"))
+        self.assertEqual(len(records), 1)
+        record = json.loads(records[0].read_text(encoding="utf-8"))
+        self.assertEqual((record["machine"], record["status"], record["command"]), ("pc", "running", "python code/run.py"))
+        self.assertTrue((Path(record["code_dir"]) / "run.py").is_file())
+        self.assertIn("pc:", self.lab("status").stdout)
+        self.assertIn(record["run_id"], run("runs", "--active", "--root", str(self.root)).stdout)
+        ended = run("run", "end", record["run_id"], "--status", "done", "--outputs", "/data/x", "--root", str(self.root), machine="pc")
+        self.assertEqual(ended.returncode, 0, ended.stderr)
+        self.assertEqual(json.loads(records[0].read_text(encoding="utf-8"))["status"], "done")
+        self.assertEqual(run("log", "downloaded", "dinov2", "--root", str(self.root), machine="cluster").returncode, 0)
+        journal = self.lab("journal").stdout
+        self.assertIn(f"run[pc]({topic.name}): start {record['run_id']}", journal)
+        self.assertIn("log[cluster]: downloaded dinov2", journal)
+        self.assertEqual(run("journal", "--machine", "cluster", "--root", str(self.root)).stdout.count("\n"), 1)
+        self.assertEqual(self.check(topic).returncode, 0)
+
+    def test_machine_prefixed_plan_commit_freezes_predictions(self):
+        topic = self.new()
+        self.fill(topic, "DISCOVERY.md", "PLAN.md")
+        self.set_cell(topic.name, 3, "推到极限")
+        self.set_cell(topic.name, 4, "running")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", f"plan[mac]({topic.name}): freeze predictions")
+        self.assertEqual(self.check(topic).returncode, 0)
 
     def test_index_and_directories_must_match(self):
         (self.root / "topics" / f"{DATE}-orphan").mkdir()
