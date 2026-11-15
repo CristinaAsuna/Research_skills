@@ -4,6 +4,7 @@
 
 - **agent 和 rsync**：用 `ssh pc '<命令>'`。它直接连到 WSL 内的 sshd（2222 端口），拿到的是完整的 Linux shell。
 - **人手动使用**：可以继续用 `windows-linux`。这个别名会强制打开交互终端，所以不能用于 rsync，也不能执行单条命令。
+- **`ssh pc` 超时**：通常是 WSL 没在运行，例如 Windows 刚重启过（sshd 跟着 WSL 一起启动）。先用 `ssh windows "wsl.exe -d Ubuntu-24.04 -u pc --exec true"` 唤醒，几秒后重试。`.wslconfig` 中已设置 `[wsl2] vmIdleTimeout=-1` 和 `[general] instanceIdleTimeout=-1`，WSL 空闲时不会自动关闭。修改 `.wslconfig` 后要执行一次 `wsl --shutdown` 才会生效。
 - **只需要 Windows 侧信息时**（显卡驱动、磁盘、`wsl.exe`）：用 `ssh windows`，默认 shell 是 PowerShell 5.1，不支持用 `&&` 连接命令。
 
 ## 运行前检查
