@@ -26,8 +26,9 @@ Exact hosts, paths and limits are in [references/machines.md](references/machine
    - Start every session with `git pull`, then `tools/lab.py status`.
    - Register formal runs with `tools/lab.py run start topics/<id> --exp E1 -- <command>`, and close them with `tools/lab.py run end <run-id> --status done|failed --outputs <where large outputs are>`.
    - Record ad-hoc work (downloads, env setup, cleanup) with `tools/lab.py log "<what, where the outputs are>"`.
-   - End every session with a commit and `git push`.
-   - Answer "what did I do where" with `tools/lab.py journal --days N` and `tools/lab.py runs`.
+   - End every session with a commit and `tools/lab.py sync`. It rebases onto other machines' commits and pushes; lab.py also does this automatically when a push is rejected, and stops cleanly on conflicts.
+   - Answer "what did I do where" with `tools/lab.py journal --days N` and `tools/lab.py runs`. Both pull first.
+   - Each machine has a `lab` shell command that runs its own copy of `tools/lab.py` from anywhere, installed by `scripts/install_lab_command.sh <repo> <python>`. Its path arguments are relative to the workspace root.
 5. **Assets are registered.** Every dataset or weight downloaded or moved goes into the workspace's `MACHINES.md` asset table, with source/revision, machine:path and size. Reuse before downloading, and never duplicate large files.
 6. **Large files bypass the Mac.** Each machine downloads what it needs from the mirror. PC↔cluster transfers go through the cluster transfer node. Only small results and figures travel through git.
 7. **Respect existing constraints.** Follow bme-cluster for anything on the cluster. On the PC, check free VRAM first, because a Zotero translation model shares the GPU. Do not stop it without permission.
