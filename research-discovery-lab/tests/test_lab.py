@@ -33,7 +33,7 @@ class LabTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def git(self, *args):
-        result = subprocess.run(["git", "-C", str(self.root), *args], capture_output=True, text=True)
+        result = subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout
 
