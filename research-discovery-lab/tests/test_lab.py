@@ -238,6 +238,72 @@ class LabTest(unittest.TestCase):
         self.assertIn("没有登记在 EXPERIMENTS.md", result.stdout)
 
 
+class SyncTest(unittest.TestCase):
+    """Two clones of one bare remote stand in for two machines."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.root, self.remote, self.other = base / "mac", base / "remote.git", base / "pc"
+        self.assertEqual(run("init", str(self.root)).returncode, 0)
+        self.sh(base, "git", "init", "-q", "--bare", str(self.remote))
+        self.identity(self.root)
+        self.sh(self.root, "git", "add", "-A")
+        self.sh(self.root, "git", "commit", "-q", "-m", "init")
+        self.sh(self.root, "git", "remote", "add", "origin", str(self.remote))
+        self.sh(self.root, "git", "push", "-q", "-u", "origin", "HEAD")
+        self.sh(base, "git", "clone", "-q", str(self.remote), str(self.other))
+        self.identity(self.other)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def sh(self, cwd, *cmd):
+        result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout
+
+    def identity(self, repo):
+        for key, value in (("user.email", "lab@example.com"), ("user.name", "lab"), ("commit.gpgsign", "false")):
+            self.sh(repo, "git", "config", key, value)
+
+    def push_from_other(self, message, path=None, text=None):
+        self.sh(self.other, "git", "pull", "-q", "--rebase")
+        if path:
+            (self.other / path).write_text(text, encoding="utf-8")
+            self.sh(self.other, "git", "add", path)
+        self.sh(self.other, "git", "commit", "-q", "--allow-empty", "-m", message)
+        self.sh(self.other, "git", "push", "-q")
+
+    def test_push_rebases_when_another_machine_pushed_first(self):
+        self.push_from_other("log[pc]: from pc")
+        result = run("log", "from", "mac", "--root", str(self.root), machine="mac")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("已拉取其他机器的更新并推送", result.stdout)
+        subjects = self.sh(self.remote, "git", "log", "--format=%s")
+        self.assertIn("log[pc]: from pc", subjects)
+        self.assertIn("log[mac]: from mac", subjects)
+
+    def test_read_commands_pull_first(self):
+        self.push_from_other("log[cluster]: downloaded weights")
+        self.assertIn("log[cluster]: downloaded weights", run("journal", "--root", str(self.root)).stdout)
+        self.sh(self.root, "git", "reset", "-q", "--hard", "HEAD~1")
+        self.assertNotIn("downloaded weights", run("journal", "--no-pull", "--root", str(self.root)).stdout)
+
+    def test_sync_pushes_local_commits_and_aborts_on_conflict(self):
+        self.sh(self.root, "git", "commit", "-q", "--allow-empty", "-m", "log[mac]: local only")
+        self.assertEqual(run("sync", "--root", str(self.root)).returncode, 0)
+        self.assertIn("log[mac]: local only", self.sh(self.remote, "git", "log", "--format=%s"))
+        self.push_from_other("docs[pc]: edit", "INSIGHTS.md", "pc version\n")
+        (self.root / "INSIGHTS.md").write_text("mac version\n", encoding="utf-8")
+        self.sh(self.root, "git", "commit", "-q", "-am", "docs[mac]: edit")
+        result = run("sync", "--root", str(self.root))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("自动 rebase 失败", result.stdout)
+        self.assertEqual((self.root / "INSIGHTS.md").read_text(encoding="utf-8"), "mac version\n")
+        self.assertFalse((self.root / ".git" / "rebase-merge").exists() or (self.root / ".git" / "rebase-apply").exists())
+
+
 @unittest.skipUnless(importlib.util.find_spec("matplotlib") and importlib.util.find_spec("numpy"), "needs matplotlib")
 class FigstyleTest(unittest.TestCase):
     def test_seed_lines_representative_seed_and_save(self):
