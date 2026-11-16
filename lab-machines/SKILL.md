@@ -22,7 +22,7 @@ Exact hosts, paths and limits are in [references/machines.md](references/machine
 1. **Know where you are.** Read `~/.config/lab/machine` (`mac`, `pc` or `cluster`). If it is missing, ask; never guess.
 2. **Announce before executing.** Before any automated execution, such as a run, download, install, sync or deletion, tell the user in one line: machine / directory / command / expected time and GPU memory / data read and written. Then wait for confirmation. This applies even when you run on the machine you are on.
 3. **Route by need.** No GPU and ≤5 minutes → `mac`. Fits the PC's free VRAM and time → `pc`. Otherwise → `cluster`. Prefer the machine that already has the data. Never download data or weights to the Mac.
-4. **One shared record.** The research workspace (a git repo cloned on all three machines) is the source of truth:
+4. **One shared record.** The research workspace (the topic repo with `lab.toml` and `tools/lab.py`, cloned on all three machines) is the source of truth for work done inside it. In any other research project, follow that repository's own `AGENTS.md`: do not switch to the workspace to initialize, and do not use `lab.py`; rules 2, 3, 5, 6 and 7 still apply there. Inside the workspace:
    - Start every session with `git pull`, then `tools/lab.py status`.
    - Register formal runs with `tools/lab.py run start topics/<id> --exp E1 -- <command>`, and close them with `tools/lab.py run end <run-id> --status done|failed --outputs <where large outputs are>`.
    - Record ad-hoc work (downloads, env setup, cleanup) with `tools/lab.py log "<what, where the outputs are>"`.
