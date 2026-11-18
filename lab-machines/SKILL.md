@@ -28,7 +28,7 @@ Exact hosts, paths and limits are in [references/machines.md](references/machine
    - Record ad-hoc work (downloads, env setup, cleanup) with `lab log "<what, where the outputs are>"`; `lab log --hub` writes to the hub even inside a project.
    - End every session with a commit and `lab sync`. It rebases onto other machines' commits and pushes; `lab` also does this automatically when a push is rejected, and stops cleanly on conflicts or a dirty tree.
    - Answer "what did I do where" with `lab journal --days N` and `lab runs [--active --machine --exp]`. Both pull first (`--no-pull` skips it).
-   - `scripts/install_lab_command.sh <python> <hub_repo>` installs the `lab` command and writes the hub path. Commit subjects are `kind[machine](exp): text`.
+   - `scripts/install_lab_command.sh <python> <hub_repo>` installs the `lab` command and writes the hub path; `scripts/update_global_note.py <target> <machine> <hub_repo>` refreshes the lab-machines block in `~/.codex/AGENTS.md` or `~/.claude/CLAUDE.md`. Commit subjects are `kind[machine](exp): text`.
 5. **Assets are registered.** Every dataset or weight downloaded or moved goes into the hub's `MACHINES.md` asset table, with source/revision, machine:path and size. Reuse before downloading, and never duplicate large files.
 6. **Large files bypass the Mac.** Each machine downloads what it needs from the mirror. PC↔cluster transfers go through the cluster transfer node. Only small results and figures travel through git.
 7. **Respect existing constraints.** Follow bme-cluster for anything on the cluster. On the PC, check free VRAM first, because a Zotero translation model shares the GPU. Do not stop it without permission.
