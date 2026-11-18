@@ -41,7 +41,7 @@ Exact hosts, paths and limits are in [references/machines.md](references/machine
 4. When it finishes, put small metrics and figures where the project's artifact contract says (`result.json`, figures), run `lab run end`, then commit and `lab sync`.
 5. Back on the Mac, `lab status` or `lab journal` shows everything.
 
-Use `ssh pc '<cmd>'` and `ssh bme_login2 '<cmd>'` for short non-interactive commands. Never run long processes through a bare SSH session: use tmux or Slurm, so closing the Mac does not kill them.
+Use `ssh pc '<cmd>'` and `ssh bme_login2 '<cmd>'` for short non-interactive commands. On `pc`, a bare `ssh pc 'lab …'` does not find `lab` (zsh non-interactive PATH): call `~/.local/bin/lab` or `ssh pc 'bash -lc "lab …"'`. Never run long processes through a bare SSH session: use tmux or Slurm, so closing the Mac does not kill them.
 
 ## Guardrails
 
