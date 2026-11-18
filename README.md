@@ -9,10 +9,9 @@ references, templates, and helper scripts.
 | Directory | Skill | Purpose |
 | --- | --- | --- |
 | [`bme_cluster`](bme_cluster/) | `bme-cluster` | Prepare, submit, monitor, and debug Slurm CPU/GPU jobs on the BME cluster while enforcing its node, network, storage, and resource-allocation constraints. |
-| [`lab-machines`](lab-machines/) | `lab-machines` | Coordinate the Mac (orchestration), the Windows/WSL PC (data hub, RTX 3060) and the BME cluster: routing, announce-before-execute, a shared git record of runs and ad-hoc work, and large-file transfer that bypasses the Mac. |
+| [`lab-machines`](lab-machines/) | `lab-machines` | Coordinate the Mac (orchestration), the Windows/WSL PC (data hub, RTX 3060) and the BME cluster: routing, announce-before-execute, large-file transfer that bypasses the Mac, and the `lab` command, a shared git record of runs and ad-hoc work that works in any project repo. |
 | [`paper-algorithm-tutorial`](paper-algorithm-tutorial/) | `paper-algorithm-tutorial` | Turn a research paper into a Chinese hands-on implementation course with microtasks, layered hints, reference solutions, a runnable practice model and mechanism checks. Includes an adapter for the tutorial repository. |
-| [`research-discovery-lab`](research-discovery-lab/) | `research-discovery-lab` | Reconstruct how a paper's idea was discovered, have the user predict first, then replay it with toy experiments and figures in a workspace with planner/executor/reviewer roles, frozen predictions, a growth log and approval-gated harness self-improvement (RSI). |
-| [`research-project`](research-project/) | `research-project` | Template and rules for a long-lived research project run by coding agents: a short STATE.md naming the trunk and the single open question, experiment cards approved before code, one evaluation entry, an artifact contract, and step-by-step trunk migration. |
+| [`research-project`](research-project/) | `research-project` | Template and rules for a long-lived research project run by coding agents: a short STATE.md naming the trunk and the single open question, experiment cards approved before any code (including a checklist for reviewing the user's own experiment designs), one evaluation entry, an artifact contract, and step-by-step trunk migration. |
 
 ## Use a skill locally
 

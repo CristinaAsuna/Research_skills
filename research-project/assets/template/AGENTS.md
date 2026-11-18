@@ -55,8 +55,8 @@
 
 ## 6. Git
 
-- 正式运行前 `src/`、`configs/`、`tests/` 必须已提交，把 commit 写进 result.json。
-- 每次会话结束：更新 STATE.md 和 EXPERIMENTS.md 里对应的一行，运行 `tools/project.py check`，提交并 push。
+- 正式运行前 `src/`、`configs/`、`tests/` 必须已提交，用 `lab run start <实验编号> -- <命令>` 登记，把 commit 和 run_id 写进 result.json。
+- 每次会话结束：更新 STATE.md 和 EXPERIMENTS.md 里对应的一行，运行 `tools/project.py check`，提交并 `lab sync`。
 - 提交信息写清做了什么，例如 `exp(<id>): …`、`trunk: …`、`docs: …`。
 
 ## 7. 主干迁移

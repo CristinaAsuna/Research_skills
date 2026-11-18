@@ -21,7 +21,7 @@
 
 - 有 registry 或 manifest 记录了 sha256 的，逐个文件比对。
 - 没有记录的，在两边对同一组文件计算 `sha256sum` 后比对，或用 `rsync -c --dry-run` 确认没有差异。
-- 核对结果写进 `lab.py log` 的说明，例如“迁移 X，N 个文件，sha256 全部一致，原件仍在 Mac 上”。
+- 核对结果写进 `lab log` 的说明，例如“迁移 X，N 个文件，sha256 全部一致，原件仍在 Mac 上”。
 - 更新 `MACHINES.md` 资产表中的位置和大小。
 
 ## 注意

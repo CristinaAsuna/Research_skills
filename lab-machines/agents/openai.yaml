@@ -1,7 +1,7 @@
 interface:
   display_name: "三机协作"
-  short_description: "Mac 指挥、PC 存数据和跑单卡、集群跑大算力；执行前告知位置，所有运行和零散操作统一记录"
-  default_prompt: "使用 $lab-machines 决定这个实验或下载在哪台机器上执行，先告诉我机器、目录和命令，执行后记录到研究仓库。"
+  short_description: "Mac 指挥、PC 存数据和跑单卡、集群跑大算力；执行前告知位置，任何 git 项目里的运行和零散操作都用 lab 命令统一记录"
+  default_prompt: "使用 $lab-machines 决定这个实验或下载在哪台机器上执行，先告诉我机器、目录和命令，执行后用 lab 命令记录。"
 
 policy:
   allow_implicit_invocation: true

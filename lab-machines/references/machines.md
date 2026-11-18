@@ -5,7 +5,7 @@
 ## Mac（`mac`）
 
 - 本机 926 GiB，不放数据、权重和缓存。
-- 研究仓库：`/Users/max/codebase/coding_agent_repro`
+- 总台仓库（资产表和零散操作日志）：`/Users/max/codebase/coding_agent_repro`；项目仓库在 `/Users/max/codebase/<项目>`。
 - skill 源码：`/Users/max/codebase/research_plugins/Research_skills`
   - `~/.claude/skills/` 下软链接到这里，供 Claude Code 使用；
   - `~/.agents/skills/` 下软链接到这里，供 Codex 使用。
@@ -33,8 +33,9 @@
 
   | 用途 | 路径 |
   |---|---|
-  | 研究仓库 | `~/lab/coding_agent_repro` |
-  | 运行目录 | `~/lab/runs` |
+  | 总台仓库 | `~/lab/coding_agent_repro` |
+  | 项目仓库 | `~/lab/<项目>` |
+  | 运行产物 | 项目的 `runs/`（被 git 忽略）；想集中存放就设 `LAB_RUNS_ROOT=~/lab/runs` |
   | 热数据与缓存（数据集、HF 缓存） | `~/lab/assets`，放在 ext4 上 |
   | Python 环境 | `~/lab/envs/main`（uv 建的 venv，torch CUDA） |
   | 已有权重库（保留并继续使用） | `/mnt/d/vscode_workplace/brainstorm/models`，含 huggingface、torchhub、dit、sit |
@@ -49,9 +50,9 @@
 
 - **约束**：遵循 bme-cluster skill，包括计算节点不能联网、每人最多 2 个作业和 3 张 GPU、不写 `/public_bme2`。
 - **路径**：
-  - 研究仓库：`/public_bme/home/maxquan/Projects/coding_agent_repro`
-  - 运行目录：`/public_bme/home/maxquan/Projects/runs`
+  - 总台仓库：`/public_bme/home/maxquan/Projects/coding_agent_repro`
+  - 项目仓库：`/public_bme/home/maxquan/Projects/<项目>`，运行产物在项目的 `runs/` 下（或用 `LAB_RUNS_ROOT` 指向别处）
   - 数据集：`/public_bme/home/maxquan/Datasets`
-- **lab.py 用的 Python**：系统只有 3.6 和 3.7。用 uv 安装独立的 3.12，安装目录放在 `/public_bme/home/maxquan/envs/` 下，不放在 home。
+- **`lab` 用的 Python**：系统只有 3.6 和 3.7。用 uv 安装独立的 3.12，安装目录放在 `/public_bme/home/maxquan/envs/` 下，不放在 home。
 - **联网**：登录节点能访问 hf-mirror.com 和 GitHub，huggingface.co 不通。
 - **GPU**：A100 40G/80G 和 V100，共约 100 张，通常需要排队。

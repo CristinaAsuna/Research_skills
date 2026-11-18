@@ -27,7 +27,7 @@
 
 ## 长时间运行
 
-- 用 tmux 启动，并把会话名作为 `--job` 传给 `lab.py run start`：
+- 用 tmux 启动，并把会话名作为 `--job` 传给 `lab run start`：
 
   ```bash
   tmux new -d -s <run-id> 'cd <运行目录> && <命令> 2>&1 | tee run.log'
@@ -45,7 +45,7 @@
 
 | 数据类型 | 位置 | 原因 |
 |---|---|---|
-| 大量小文件的数据集、预处理缓存、训练产物 | ext4：`~/lab/assets`、`~/lab/runs` | 读写快 |
+| 大量小文件的数据集、预处理缓存、训练产物 | ext4：`~/lab/assets`、项目的 `runs/` | 读写快 |
 | 权重 | D: 盘上已有的库 `/mnt/d/vscode_workplace/brainstorm/models` | 文件大、数量少，走 9p 也能接受 |
 | 完成后不再频繁访问的大产物 | `/mnt/d/lab-archive` | 冷归档 |
 
