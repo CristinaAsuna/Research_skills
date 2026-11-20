@@ -22,7 +22,8 @@
 5. 把 STATE.md 的"当前唯一问题"指向这张卡片，登记表状态改为 running。
 6. 执行：先用最小规模跑通，再正式运行。正式运行前代码必须已提交。
 7. 写 `result.json`，在卡片的"结果"一节写结论，登记表填一句话结论。
-8. 由用户或新会话核对数字后，状态改为 done，从 STATE.md 的排队里取下一项。
+8. 由用户或新会话核对数字后，状态改为 done（或 stopped），从 STATE.md 的排队里取下一项。
+9. 收尾：`tools/project.py audit --exp <id>` 列出冗余 checkpoint 和放错位置的缓存，生成清单；交给用户确认后运行 `tools/project.py prune <清单> --yes`。
 
 执行中出现以下情况就停下来问用户：超过预算的 1.5 倍；出现 NaN 或发散；发现会影响结论的 bug；卡片有歧义。
 
@@ -36,8 +37,8 @@
 - **推翻条件**：看到什么结果就承认预测错了。
 - **相对主干的改动**：只有一处。写配置文件名。
 - **评测**：默认写"同 PIPELINE.md"。有任何不同都要写明，并说明为什么仍然可比。
-- **预算和停止门槛**：GPU 小时或墙钟时间；达到什么数值或时间就停。
-- **要保存的产物**：列出文件。没列的不保存。
+- **计算和存储预算**：GPU 小时或墙钟时间；存储上限写成"存储上限 N GB"，`audit` 和 `check` 会对照 runs/<id>/ 的实际大小；达到什么数值或时间就停。
+- **要保存的产物**：逐项写文件名。checkpoint 默认只有 best.pt；last.pt、best_<name>.pt 等其他文件不写进来，实验结束时会被 `audit` 列为冗余。
 - **结果**：运行后填写。写数字、与主干的差、结论，以及这个实验不能说明什么。
 
 ### 示例
@@ -67,11 +68,11 @@ configs/exp/2026-11-20-sd15-controlnet.yaml：模型换成 SD1.5 加 ControlNet�
 ## 评测
 同 PIPELINE.md。
 
-## 预算和停止门槛
-24 GPU 小时。4000 步内没有低于 0.6 就停。
+## 计算和存储预算
+24 GPU 小时；存储上限 10 GB。4000 步内没有低于 0.6 就停。
 
 ## 要保存的产物
-result.json；figures/curve.png；runs/ 下只留 best checkpoint。
+result.json；figures/curve.png；checkpoints/best.pt。
 
 ## 结果
 【运行后填写】
@@ -110,6 +111,8 @@ result.json；figures/curve.png；runs/ 下只留 best checkpoint。
 - 每个实验各写一个评测脚本，或者换了评测集。数字之间不再可比。
 - 为下一个阶段新建一个包，再去 import 上一个阶段的包。上游一改，后面的结果全部悄悄变化。
 - 把同一个结果存成数组、图片、表格和网页四种格式。
+- 训练代码自己调用 `torch.save` 存 `step_*`、`smoke.pt` 和好几种 best，没有人收尾，几个月后积累几十 G。应当只用 `artifacts.save_checkpoint`，实验结束跑 `audit`。
+- 没有先 `source tools/env.sh`，matplotlib、CUDA 的缓存和 pip 装的包落进了实验目录。
 - 做完不更新 STATE.md。下一个会话读到的是过期状态。
 
 ## 7. 审查用户自己设计的实验（Claude 只审，不代设计）

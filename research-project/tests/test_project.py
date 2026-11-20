@@ -59,7 +59,8 @@ class ProjectTest(unittest.TestCase):
     def test_init_creates_layout_and_fills_placeholders(self):
         for relative in ("AGENTS.md", "CLAUDE.md", "STATE.md", "EXPERIMENTS.md", ".gitignore",
                          "docs/PROJECT.md", "docs/DATA.md", "docs/PIPELINE.md", "docs/DECISIONS.md",
-                         "configs/trunk.yaml", "src/demo/__init__.py", "tools/project.py"):
+                         "configs/trunk.yaml", "src/demo/__init__.py", "src/demo/artifacts.py",
+                         "tools/project.py", "tools/env.sh"):
             self.assertTrue((self.root / relative).is_file(), relative)
         agents = (self.root / "AGENTS.md").read_text(encoding="utf-8")
         self.assertIn("src/demo/", agents)
@@ -181,6 +182,131 @@ class ProjectTest(unittest.TestCase):
     def test_single_project_needs_no_tag_prefix(self):
         self.assertIn("例如 trunk-v1】", (self.root / "STATE.md").read_text(encoding="utf-8"))
         self.assertIn("打 tag `trunk-v<N>`", (self.root / "AGENTS.md").read_text(encoding="utf-8"))
+
+
+    def run_files(self, exp, names):
+        folder = self.root / "runs" / exp / "checkpoints"
+        folder.mkdir(parents=True, exist_ok=True)
+        for name in names:
+            (folder / name).write_bytes(b"x" * 1024)
+        return folder
+
+    def audit(self, *extra):
+        result = run("audit", "--root", str(self.root), *extra)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        return result.stdout
+
+    def prune_list(self):
+        listings = sorted((self.root / "scratch").glob("prune-*.txt"))
+        self.assertEqual(len(listings), 1)
+        return listings[0], listings[0].read_text(encoding="utf-8")
+
+    def test_new_card_asks_for_storage_budget(self):
+        card = (self.new() / "CARD.md").read_text(encoding="utf-8")
+        self.assertIn("## 计算和存储预算", card)
+        self.assertIn("checkpoints/best.pt", card)
+
+    def test_audit_lists_redundant_checkpoints_and_misplaced_caches(self):
+        exp = self.new().name
+        self.run_files(exp, ["best.pt", "last.pt", "step_010000.pt", "smoke.pt", "best_ssim.pt"])
+        (self.root / "runs" / exp / "matplotlib_cache").mkdir()
+        deps = self.root / "experiments" / exp / "exports" / "python_dependencies" / "site-packages"
+        deps.mkdir(parents=True)
+        (deps / "lib.so").write_bytes(b"x")
+        out = self.audit()
+        listing, text = self.prune_list()
+        for name in ("step_010000.pt", "smoke.pt", "best_ssim.pt", "matplotlib_cache", "python_dependencies"):
+            self.assertIn(name, text)
+        self.assertNotIn("best.pt\n", text.replace("best_ssim.pt", ""))
+        self.assertNotIn("last.pt", text)
+        self.assertIn("可回收", out)
+
+    def test_card_keeps_listed_files_and_done_drops_last(self):
+        directory = self.new()
+        self.edit("experiments/{}/CARD.md".format(directory.name),
+                  "result.json；checkpoints/best.pt；", "result.json；checkpoints/best.pt；checkpoints/best_ssim.pt；")
+        self.run_files(directory.name, ["best.pt", "last.pt", "best_ssim.pt"])
+        self.edit("EXPERIMENTS.md", "| queued |", "| done |")
+        (directory / "result.json").write_text("{}\n", encoding="utf-8")
+        self.audit("--exp", directory.name)
+        _, text = self.prune_list()
+        self.assertEqual([Path(line).name for line in text.splitlines()], ["last.pt"])
+
+    def test_clean_run_has_nothing_to_prune(self):
+        exp = self.new().name
+        self.run_files(exp, ["best.pt", "last.pt"])
+        self.assertIn("可回收 0G", self.audit())
+        self.assertEqual(list((self.root / "scratch").glob("prune-*.txt")), [])
+
+    def test_over_budget_and_unregistered_runs(self):
+        directory = self.new()
+        self.edit("experiments/{}/CARD.md".format(directory.name),
+                  "存储上限 N GB", "存储上限 0.000001 GB")
+        self.run_files(directory.name, ["best.pt", "last.pt"])
+        self.run_files("someone-elses-run", ["best.pt"])
+        out = self.audit()
+        self.assertIn("超出存储预算", out)
+        self.assertIn("没有登记在 EXPERIMENTS.md 的 run 目录", out)
+        self.assertIn("超出卡片的存储预算", self.check().stdout)
+
+    def test_audit_reports_identical_large_files(self):
+        for exp in ("a", "b"):
+            folder = self.root / "runs" / "_cache" / exp
+            folder.mkdir(parents=True)
+            with open(folder / "latents.bin", "wb") as handle:
+                handle.truncate(101 * 1024 ** 2)
+        out = self.audit()
+        self.assertIn("内容相同的大文件", out)
+        self.assertIn("可回收 0G", out)
+
+    def test_prune_previews_then_deletes_only_with_yes(self):
+        exp = self.new().name
+        folder = self.run_files(exp, ["best.pt", "step_1.pt"])
+        self.audit()
+        listing, _ = self.prune_list()
+        preview = run("prune", str(listing), "--root", str(self.root))
+        self.assertEqual(preview.returncode, 0, preview.stdout)
+        self.assertTrue((folder / "step_1.pt").exists())
+        done = run("prune", str(listing), "--yes", "--root", str(self.root))
+        self.assertEqual(done.returncode, 0, done.stdout)
+        self.assertIn("已删除 1 项", done.stdout)
+        self.assertFalse((folder / "step_1.pt").exists())
+        self.assertTrue((folder / "best.pt").exists())
+
+    def test_prune_refuses_paths_outside_artifact_dirs(self):
+        exp = self.new().name
+        folder = self.run_files(exp, ["step_1.pt"])
+        outside = self.root / "src" / "demo" / "__init__.py"
+        listing = self.root / "scratch" / "manual.txt"
+        listing.write_text("{}\n{}\n{}\n".format(folder / "step_1.pt", outside,
+                                                   self.root / "experiments" / exp / "CARD.md"), encoding="utf-8")
+        result = run("prune", str(listing), "--yes", "--root", str(self.root))
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("什么也没删", result.stdout)
+        self.assertTrue((folder / "step_1.pt").exists())
+        self.assertTrue(outside.exists())
+
+    def test_extra_root_directory_is_error(self):
+        (self.root / "sd15_fulltrain").mkdir()
+        (self.root / "sd15_fulltrain" / "core.py").write_text("x = 1\n", encoding="utf-8")
+        self.assert_error("根目录多出 sd15_fulltrain/")
+
+    def test_direct_torch_save_is_warning(self):
+        (self.root / "src" / "demo" / "train.py").write_text("import torch\ntorch.save({}, 'x.pt')\n", encoding="utf-8")
+        self.commit("train")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("src/demo/train.py 直接调用了 torch.save", result.stdout)
+        self.assertNotIn("artifacts.py 直接调用", result.stdout)
+
+    def test_check_warns_when_much_is_reclaimable(self):
+        exp = self.new().name
+        folder = self.root / "runs" / exp / "checkpoints"
+        folder.mkdir(parents=True)
+        with open(folder / "step_1.pt", "wb") as handle:
+            handle.truncate(11 * 1024 ** 3)
+        self.assertIn("冗余产物：运行 tools/project.py audit", self.check().stdout)
+        self.assertNotIn("冗余产物", run("check", "--skip-audit", "--root", str(self.root)).stdout)
 
 
 class SubProjectTest(unittest.TestCase):

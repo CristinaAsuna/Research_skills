@@ -40,18 +40,20 @@
 
 - 主干代码在 `src/{{PKG}}/`。实验写成 `configs/exp/<id>.yaml`（只列相对 `configs/trunk.yaml` 的差异），必要时在 src 里加一个默认关闭的开关。不为一个实验新建包。
 - `experiments/<id>/` 里的脚本可以 import src；src 和其他实验都不能 import 它。
+- 项目根目录只有模板里的目录：src、configs、experiments、tests、tools、docs、scratch、runs，可以再加一个指向数据的 data 链接。不为一个阶段或实验在根目录新建目录。
 - 评测只用 docs/PIPELINE.md 写的那一个入口和那一个评测集。不另写评测脚本。更换评测集或主指标属于决策，要记进 docs/DECISIONS.md。
 
 ## 5. 产物
 
 - 进 git 的只有：代码、配置、文档、`experiments/<id>/` 下的 CARD.md、result.json 和不超过 4 张 PNG。
 - `result.json` 至少包含：exp、commit、config、eval_set、metrics、baseline、runtime_sec、outputs（大产物所在的机器和路径）。
-- 大产物放在 `runs/<id>/`，不进 git：
-  - checkpoint 只留 best；训练进行中多留一个 last。
-  - 推理结果和特征缓存，同一组"checkpoint、数据划分、配置"只存一份，新实验直接读它。
-  - 每类结果只存一种格式：指标 JSON，图 PNG。逐样本数组、HTML 报告等只在卡片列出时才导出。
-- 卡片没列的临时文件写到 scratch/。虚拟环境和工具缓存（matplotlib、CUDA、HF）不放进 runs/ 和 experiments/。
-- 不删除、移动或覆盖已有的数据、权重和 runs/；需要清理时列出清单让用户决定。
+- 大产物放在 `runs/<id>/`，不进 git。保存只走 `src/{{PKG}}/artifacts.py`，不自己写 `torch.save`：
+  - checkpoint 用 `save_checkpoint`，只产生 best.pt 和 last.pt。要多存别的文件，先写进卡片的"要保存的产物"。
+  - 推理结果和特征缓存用 `cache_dir`，同一组键只存一份，新实验直接读已有的。
+  - smoke 运行用 `run_dir(<id>, smoke=True)`，写到 scratch/，不进 runs/。
+- 每次运行前先 `source tools/env.sh`：matplotlib、CUDA、Triton、pip 等缓存进临时目录，模型权重进登记的共享目录。
+- 每类结果只存一种格式：指标 JSON，图 PNG。逐样本数组、HTML 报告等只在卡片列出时才导出。卡片没列的临时文件写到 scratch/。
+- 实验状态改为 done 或 stopped 时，运行 `tools/project.py audit --exp <id>`，把生成的清单交给用户；用户确认后才运行 `tools/project.py prune <清单> --yes`。除此之外不删除、移动或覆盖数据、权重和 runs/。
 
 ## 6. Git
 

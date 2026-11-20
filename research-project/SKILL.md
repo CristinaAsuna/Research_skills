@@ -9,7 +9,7 @@ Keep a research project legible to a fresh agent session and to the user: what t
 
 A project is the nearest directory (cwd or a parent) containing both `STATE.md` and `EXPERIMENTS.md`. Its `AGENTS.md` holds the binding rules and overrides this skill's defaults. Read `AGENTS.md`, then `STATE.md`, then the one card `STATE.md` points to. Do not read `runs/`, `scratch/` or other experiments unless the task needs them.
 
-Project tool: `<python> tools/project.py new <slug> --type trunk|ablation|analysis|spike | check`. It needs only the standard library and git.
+Project tool: `<python> tools/project.py new <slug> --type trunk|ablation|analysis|spike | check | audit [--exp <id>] | prune <list> [--yes]`. It needs only the standard library and git.
 
 ## Pick the action
 
@@ -29,7 +29,7 @@ Project tool: `<python> tools/project.py new <slug> --type trunk|ablation|analys
 2. **Card before code.** No experiment code and no runs without a card the user approved. A card states what each outcome would change; if both outcomes lead to the same next step, do not run it. Ideas that come up while working go to the parked list in `STATE.md`.
 3. **Trunk plus one difference.** An experiment is `configs/exp/<id>.yaml` over `configs/trunk.yaml`. Do not create a package per experiment, and never import one experiment from another.
 4. **One evaluation entry.** Every result comes from the command and evaluation set in `docs/PIPELINE.md`. Changing either is a decision recorded in `docs/DECISIONS.md`.
-5. **Artifacts have one home.** Git holds code, configs, docs, cards, `result.json` and at most 4 figures per experiment. Checkpoints, caches and logs live in `runs/<id>/`: best checkpoint only (plus last while training), one copy of any cache, one format per result. Throwaway files go to `scratch/`.
+5. **Artifacts have one home, enforced by code.** Git holds code, configs, docs, cards, `result.json` and at most 4 figures per experiment. Checkpoints and caches are written only through `src/<pkg>/artifacts.py` (`save_checkpoint` keeps best.pt and last.pt; `cache_dir` keys one copy per cache; smoke runs go to `scratch/`), every run starts with `source tools/env.sh` so tool caches land in a temp dir, and when an experiment is done or stopped, `tools/project.py audit --exp <id>` writes a removal list that is pruned only after the user approves it.
 6. **Commit before formal runs**, register them with `lab run start <exp-id> -- <command>` (lab-machines) and record the commit and run id in `result.json`. End every session by updating `STATE.md` and the experiment's row, running `check`, committing and `lab sync`.
 7. **Merge, do not append.** The Markdown file set is fixed and line-capped. Rewrite existing entries; no diaries, no new Markdown files.
 8. **Delegate reading, keep judgment.** Use subagents to read logs, aggregate metrics, search code or read papers, returning conclusions with paths. Experiment design, trunk decisions and document edits stay in the main session.

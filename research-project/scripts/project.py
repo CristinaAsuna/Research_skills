@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Research project template tool: init a project, open an experiment card, check the project.
+"""Research project template tool: init a project, open an experiment card, check it, audit and prune artifacts.
 
 Standard library only. Git is called with cwd instead of `git -C` so old git versions work.
 """
 import argparse
 import datetime
+import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -26,6 +28,13 @@ MAX_TRACKED_KB = 1024
 ALLOWED_MD = set(LINE_LIMITS) | {"EXPERIMENTS.md"}
 SKIP_MD_PREFIXES = ("scratch/", "runs/", "third_party/")
 CODE_DIRS = ("src", "configs", "tests")
+ROOT_DIRS = {"src", "configs", "experiments", "tests", "tools", "docs", "scratch", "runs", "data"}
+CHECKPOINT_SUFFIXES = (".pt", ".pth", ".ckpt", ".safetensors")
+KEPT_CHECKPOINTS = {"best.pt", "last.pt"}
+MISPLACED_DIRS = re.compile(r"(?i)(cache|site-packages|^\.?venv$|^node_modules$)")
+DUPLICATE_MIN_BYTES = 100 * 1024 ** 2
+AUDIT_WARN_GB = 10
+GB = 1024 ** 3
 CARD = """# {id}
 
 类型：{type}　状态：queued
@@ -49,11 +58,11 @@ CARD = """# {id}
 ## 评测
 同 PIPELINE.md。
 
-## 预算和停止门槛
-【待填：时间或 GPU 小时；达到什么就停】
+## 计算和存储预算
+【待填：GPU 小时或墙钟时间；存储上限 N GB（runs/ 下全部产物）；达到什么就停】
 
 ## 要保存的产物
-result.json；【待填：图和 runs/ 下保留的文件】
+result.json；checkpoints/best.pt；【待填：其余逐项写文件名，没写的不保存】
 
 ## 结果
 【运行后填写：数字、与主干的差、结论、这个实验不能说明什么】
@@ -169,6 +178,191 @@ def section(lines, title):
     return body
 
 
+def tree_size(path, seen=None):
+    """Bytes under path without following symlinks; hard links are counted once."""
+    seen = set() if seen is None else seen
+    paths = [str(path)] if not path.is_dir() or path.is_symlink() else (
+        os.path.join(base, name) for base, _, names in os.walk(str(path)) for name in names)
+    total = 0
+    for item in paths:
+        try:
+            stat = os.lstat(item)
+        except OSError:
+            continue
+        if (stat.st_dev, stat.st_ino) not in seen:
+            seen.add((stat.st_dev, stat.st_ino))
+            total += stat.st_size
+    return total
+
+
+def card_info(root, exp_id):
+    """Storage budget in GB and checkpoint file names the card asks to keep."""
+    card = root / "experiments" / exp_id / "CARD.md"
+    if not card.is_file():
+        return None, set()
+    lines = lines_of(card)
+    budget = re.search(r"存储[^0-9\n]{0,10}(\d+(?:\.\d+)?)\s*G", "\n".join(section(lines, "计算和存储预算")))
+    keep = set(re.findall(r"[\w.-]+(?:\.pt|\.pth|\.ckpt|\.safetensors)", "\n".join(section(lines, "要保存的产物"))))
+    return (float(budget.group(1)) if budget else None), keep
+
+
+def fingerprint(path, size):
+    digest = hashlib.sha256(str(size).encode())
+    with open(str(path), "rb") as handle:
+        digest.update(handle.read(1024 ** 2))
+        handle.seek(max(size - 1024 ** 2, 0))
+        digest.update(handle.read(1024 ** 2))
+    return digest.hexdigest()
+
+
+def find_misplaced(directory, found):
+    for base, dirs, _ in os.walk(str(directory)):
+        for name in list(dirs):
+            if MISPLACED_DIRS.search(name):
+                path = Path(base) / name
+                found.append((path, tree_size(path)))
+                dirs.remove(name)
+
+
+def collect(root, extra_runs=(), only=None, duplicates=True):
+    """Find redundant artifacts. Nothing is deleted here."""
+    rows = registry_rows(root)
+    report = {key: [] for key in ("runs", "checkpoints", "misplaced", "over_budget", "unregistered", "duplicates")}
+    big = {}
+    for runs in [root / "runs"] + [Path(p).resolve() for p in extra_runs]:
+        if not runs.is_dir():
+            continue
+        for run in sorted(p for p in runs.iterdir() if p.is_dir() and p.name != "_cache"):
+            if only and run.name != only:
+                continue
+            size = tree_size(run)
+            report["runs"].append((run, size))
+            if run.name not in rows:
+                report["unregistered"].append((run, size))
+            status = rows.get(run.name, [""] * 7)[4]
+            budget, keep = card_info(root, run.name)
+            if budget is not None and size > budget * GB:
+                report["over_budget"].append((run, size, budget))
+            kept = KEPT_CHECKPOINTS - ({"last.pt"} if status in ("done", "stopped") else set()) | keep
+            find_misplaced(run, report["misplaced"])
+            for base, dirs, names in os.walk(str(run)):
+                dirs[:] = [d for d in dirs if not MISPLACED_DIRS.search(d)]
+                for name in names:
+                    if name.endswith(CHECKPOINT_SUFFIXES) and name not in kept:
+                        path = Path(base) / name
+                        report["checkpoints"].append((path, path.lstat().st_size))
+        if duplicates:
+            for base, _, names in os.walk(str(runs)):
+                for name in names:
+                    path = os.path.join(base, name)
+                    stat = os.lstat(path)
+                    if stat.st_size >= DUPLICATE_MIN_BYTES and not os.path.islink(path):
+                        big.setdefault(stat.st_size, {}).setdefault((stat.st_dev, stat.st_ino), Path(path))
+    experiments = root / "experiments"
+    if experiments.is_dir():
+        for directory in sorted(p for p in experiments.iterdir() if p.is_dir()):
+            if not only or directory.name == only:
+                find_misplaced(directory, report["misplaced"])
+    for size, by_inode in big.items():
+        if len(by_inode) < 2:
+            continue
+        groups = {}
+        for path in by_inode.values():
+            groups.setdefault(fingerprint(path, size), []).append(path)
+        for paths in groups.values():
+            if len(paths) > 1 and (not only or any(only in p.parts for p in paths)):
+                report["duplicates"].append((sorted(paths), size))
+    return report
+
+
+def show(root, path):
+    try:
+        return Path(path).relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def cmd_audit(args):
+    root = find_root(args.root)
+    report = collect(root, args.runs, args.exp)
+    print("## 各 run 的大小")
+    for run, size in report["runs"]:
+        budget = card_info(root, run.name)[0]
+        print("  {:7.2f}G  {}{}".format(size / GB, show(root, run), "（预算 {}G）".format(budget) if budget else ""))
+    removable = report["checkpoints"] + report["misplaced"]
+    for title, key in (("冗余 checkpoint：除 best.pt、last.pt 和卡片列出的文件之外", "checkpoints"),
+                       ("放错位置的缓存和环境", "misplaced")):
+        items = report[key]
+        print("## {}（{} 项，{:.2f}G）".format(title, len(items), sum(s for _, s in items) / GB))
+        for path, size in items:
+            print("  {:7.2f}G  {}".format(size / GB, show(root, path)))
+    for run, size, budget in report["over_budget"]:
+        print("## 超出存储预算：{} 用了 {:.2f}G，预算 {}G".format(show(root, run), size / GB, budget))
+    if report["unregistered"]:
+        print("## 没有登记在 EXPERIMENTS.md 的 run 目录（只报告，不进清单）")
+        for run, size in report["unregistered"]:
+            print("  {:7.2f}G  {}".format(size / GB, show(root, run)))
+    if report["duplicates"]:
+        print("## 内容相同的大文件（只报告，不进清单；保留哪份由用户决定）")
+        for paths, size in report["duplicates"]:
+            print("  {:7.2f}G × {}：{}".format(size / GB, len(paths), "、".join(show(root, p) for p in paths)))
+    scratch = root / "scratch"
+    if scratch.is_dir():
+        print("## scratch/ 共 {:.2f}G".format(tree_size(scratch) / GB))
+    total = sum(size for _, size in removable)
+    if not removable:
+        print("可回收 0G，无需清理。")
+        return 0
+    scratch.mkdir(exist_ok=True)
+    listing = scratch / "prune-{}{}.txt".format(datetime.date.today().isoformat(), "-" + args.exp if args.exp else "")
+    listing.write_text("".join(str(path) + "\n" for path, _ in removable), encoding="utf-8")
+    print("可回收 {:.2f}G，清单：{}".format(total / GB, show(root, listing)))
+    print("下一步：把清单交给用户确认；确认后运行 tools/project.py prune {} --yes".format(show(root, listing)))
+    return 0
+
+
+def cmd_prune(args):
+    root = find_root(args.root)
+    bases = [p.resolve() for p in [root / "runs", root / "experiments", root / "scratch"] + [Path(r) for r in args.runs]]
+    listing = Path(args.list)
+    entries = [line.strip() for line in lines_of(listing) if line.strip() and not line.startswith("#")]
+    targets, refused = [], []
+    for entry in entries:
+        path = Path(entry) if Path(entry).is_absolute() else root / entry
+        parent = path.parent.resolve()
+        target = parent / path.name
+        inside = any(base == parent or base in parent.parents for base in bases)
+        if not inside or path.name in ("CARD.md", "result.json"):
+            refused.append(target)
+        elif os.path.lexists(str(target)):
+            targets.append(target)
+        else:
+            print("已不存在，跳过：" + show(root, target))
+    for target in refused:
+        print("拒绝：{} 不在 runs/、experiments/、scratch/ 或 --runs 之下，或者是卡片和结果文件。".format(target))
+    if refused:
+        print("清单里有被拒绝的路径，什么也没删。")
+        return 1
+    seen = set()
+    sizes = [tree_size(target, seen) for target in targets]
+    for target, size in zip(targets, sizes):
+        print("  {:7.2f}G  {}".format(size / GB, show(root, target)))
+    print("共 {} 项，{:.2f}G。".format(len(targets), sum(sizes) / GB))
+    if not args.yes:
+        print("没有删除任何东西。用户确认后加 --yes 执行。")
+        return 0
+    for target in targets:
+        if target.is_dir() and not target.is_symlink():
+            shutil.rmtree(str(target))
+        else:
+            target.unlink()
+    left = [t for t in targets if os.path.lexists(str(t))]
+    for target in left:
+        print("仍存在：" + show(root, target))
+    print("已删除 {} 项，释放 {:.2f}G。".format(len(targets) - len(left), sum(sizes) / GB))
+    return 1 if left else 0
+
+
 def cmd_check(args):
     root = find_root(args.root)
     errors, warnings = [], []
@@ -254,6 +448,21 @@ def cmd_check(args):
     if len(running) > 1:
         warnings.append("有 {} 个实验同时是 running：{}。同一时间只回答一个问题。".format(len(running), "、".join(running)))
 
+    extra = sorted(p.name for p in root.iterdir() if p.is_dir() and not p.name.startswith(".") and p.name not in ROOT_DIRS)
+    for name in extra:
+        errors.append("根目录多出 {}/：代码放进 src/，实验放进 experiments/<id>/，不为一个阶段或实验新建目录。".format(name))
+    for relative in files:
+        if relative.endswith(".py") and relative.startswith(("src/", "experiments/")) and not relative.endswith("/artifacts.py"):
+            if re.search(r"\btorch\.save\(", (root / relative).read_text(encoding="utf-8", errors="replace")):
+                warnings.append("{} 直接调用了 torch.save：checkpoint 改用 artifacts.save_checkpoint，缓存改用 artifacts.cache_dir。".format(relative))
+    if not getattr(args, "skip_audit", False):
+        report = collect(root, duplicates=False)
+        removable = sum(size for _, size in report["checkpoints"] + report["misplaced"])
+        if removable > AUDIT_WARN_GB * GB:
+            warnings.append("runs/ 和 experiments/ 里有 {:.1f}G 冗余产物：运行 tools/project.py audit。".format(removable / GB))
+        for run, size, budget in report["over_budget"]:
+            warnings.append("{} 用了 {:.1f}G，超出卡片的存储预算 {}G。".format(show(root, run), size / GB, budget))
+
     for message in errors:
         print("ERROR " + message)
     for message in warnings:
@@ -280,7 +489,19 @@ def main():
     new.set_defaults(run=cmd_new)
     check = commands.add_parser("check", help="检查项目是否符合模板约定")
     check.add_argument("--root", default=".")
+    check.add_argument("--skip-audit", action="store_true", help="不统计 runs/ 的冗余产物（runs/ 很大时用）")
     check.set_defaults(run=cmd_check)
+    audit = commands.add_parser("audit", help="只读：找出冗余 checkpoint、放错位置的缓存、超预算和重复文件，生成删除清单")
+    audit.add_argument("--exp", help="只看这一个实验")
+    audit.add_argument("--runs", action="append", default=[], help="另一个 runs 根目录，可重复")
+    audit.add_argument("--root", default=".")
+    audit.set_defaults(run=cmd_audit)
+    prune = commands.add_parser("prune", help="删除清单里的路径；不加 --yes 只预览")
+    prune.add_argument("list")
+    prune.add_argument("--yes", action="store_true", help="用户已确认，执行删除")
+    prune.add_argument("--runs", action="append", default=[], help="允许删除的另一个 runs 根目录")
+    prune.add_argument("--root", default=".")
+    prune.set_defaults(run=cmd_prune)
     args = parser.parse_args()
     sys.exit(args.run(args) or 0)
 
