@@ -6,7 +6,7 @@
 
 ## 当前主干
 
-- tag：【待填，例如 trunk-v1】
+- tag：【待填，例如 {{TAG}}trunk-v1】
 - commit：【待填】
 - 配置：configs/trunk.yaml
 - 评测集：【待填，例如 val-117 名患者】

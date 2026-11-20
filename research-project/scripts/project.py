@@ -73,6 +73,12 @@ def find_root(start):
     sys.exit("找不到项目根目录：需要同时有 STATE.md 和 EXPERIMENTS.md。新项目先运行 init。")
 
 
+def tag_prefix(root):
+    """Path of a sub-project inside a shared repository ("" at the top), used to namespace trunk tags."""
+    code, out = git(root, "rev-parse", "--show-prefix")
+    return out.strip() if code == 0 else ""
+
+
 def lines_of(path):
     return path.read_text(encoding="utf-8").splitlines()
 
@@ -85,6 +91,10 @@ def cmd_init(args):
     root = Path(args.dir).resolve()
     root.mkdir(parents=True, exist_ok=True)
     today = args.date or datetime.date.today().isoformat()
+    if git(root, "rev-parse", "--is-inside-work-tree")[0] != 0:
+        git(root, "init")
+        print("已运行 git init。")
+    prefix = tag_prefix(root)
     created, skipped = [], []
     for source in sorted(TEMPLATE.rglob("*")):
         if source.is_dir():
@@ -98,7 +108,8 @@ def cmd_init(args):
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         text = source.read_text(encoding="utf-8")
-        for key, value in (("{{PKG}}", args.name), ("{{NAME}}", args.title or args.name), ("{{DATE}}", today)):
+        for key, value in (("{{PKG}}", args.name), ("{{NAME}}", args.title or args.name), ("{{DATE}}", today),
+                           ("{{TAG}}", prefix)):
             text = text.replace(key, value)
         target.write_text(text, encoding="utf-8")
         created.append(relative)
@@ -111,9 +122,8 @@ def cmd_init(args):
         created.append("tools/project.py")
     for name in ("runs", "scratch"):
         (root / name).mkdir(exist_ok=True)
-    if git(root, "rev-parse", "--is-inside-work-tree")[0] != 0:
-        git(root, "init")
-        print("已运行 git init。")
+    if prefix:
+        print("这是共享仓库里的子项目 {}：主干 tag 写成 {}trunk-v<N>，避免和其他子项目冲突。".format(prefix, prefix))
     print("创建 {} 个文件，跳过 {} 个已存在的文件。".format(len(created), len(skipped)))
     for relative in skipped:
         print("  跳过：" + relative)
@@ -201,6 +211,18 @@ def cmd_check(args):
         warnings.append("STATE.md 还没有写主干的 commit：主干未锁定，此时只做 trunk 类型的实验。")
     elif in_git and git(root, "cat-file", "-e", match.group(1) + "^{commit}")[0] != 0:
         errors.append("STATE.md 里的主干 commit {} 不存在。".format(match.group(1)))
+    tag = re.search(r"tag[:：]\s*`?([^\s`【]+)", trunk)
+    if tag is not None and in_git:
+        name, prefix = tag.group(1), tag_prefix(root)
+        if prefix and not name.startswith(prefix):
+            errors.append("主干 tag {} 应以 {} 开头：同一仓库里的子项目各用各的前缀。".format(name, prefix))
+        code, tagged = git(root, "rev-parse", "-q", "--verify", "refs/tags/{}^{{commit}}".format(name))
+        if code != 0:
+            errors.append("STATE.md 里的主干 tag {} 不存在：先打 tag。".format(name))
+        elif match is not None:
+            pinned = git(root, "rev-parse", "-q", "--verify", match.group(1) + "^{commit}")[1].strip()
+            if pinned and pinned != tagged.strip():
+                errors.append("主干 tag {} 指向的提交和 STATE.md 里的 commit {} 不一致。".format(name, match.group(1)))
     if PLACEHOLDER in "\n".join(section(state, "当前唯一问题")):
         warnings.append("STATE.md 没有写当前唯一问题。")
     queued = [line for line in section(state, "排队") if re.match(r"\s*(-|\d+\.)\s+\S", line)]
@@ -210,9 +232,9 @@ def cmd_check(args):
     if updated is None:
         errors.append("STATE.md 缺少“更新：YYYY-MM-DD”。")
     elif in_git:
-        last = git(root, "log", "-1", "--format=%cd", "--date=short")[1].strip()
+        last = git(root, "log", "-1", "--format=%cd", "--date=short", "--", ".")[1].strip()
         if last and updated.group(1) < last:
-            warnings.append("STATE.md 更新于 {}，早于最近一次提交 {}：确认它没有过期。".format(updated.group(1), last))
+            warnings.append("STATE.md 更新于 {}，早于本项目最近一次提交 {}：确认它没有过期。".format(updated.group(1), last))
 
     rows = registry_rows(root)
     experiments = root / "experiments"

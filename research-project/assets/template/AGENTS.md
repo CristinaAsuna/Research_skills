@@ -63,7 +63,7 @@
 
 只有两种情况可以改 `configs/trunk.yaml` 和 STATE.md 的主干一节：
 
-- **实验取代主干**：卡片里事先写好的条件（同一评测集、超过主干多少、几个 seed）已经满足，并且用户同意。然后合并配置，打 tag `trunk-v<N>`，更新 STATE.md，在 docs/DECISIONS.md 记一条。旧主干在 EXPERIMENTS.md 里保留为基线行。
+- **实验取代主干**：卡片里事先写好的条件（同一评测集、超过主干多少、几个 seed）已经满足，并且用户同意。然后合并配置，打 tag `{{TAG}}trunk-v<N>`，更新 STATE.md，在 docs/DECISIONS.md 记一条。旧主干在 EXPERIMENTS.md 里保留为基线行。
 - **从旧项目搬入**：按 skill `research-project` 的 references/trunk-migration.md 逐步做。
 
 ## 8. 执行和分工
