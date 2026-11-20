@@ -53,6 +53,7 @@
   - 总台仓库：`/public_bme/home/maxquan/Projects/coding_agent_repro`
   - 项目仓库：`/public_bme/home/maxquan/Projects/<项目>`，运行产物在项目的 `runs/` 下（或用 `LAB_RUNS_ROOT` 指向别处）
   - 数据集：`/public_bme/home/maxquan/Datasets`
+  - 权重：`/public_bme/home/maxquan/Datasets/models`，`~/.bashrc` 里设为 `LAB_MODELS_DIR`。hf 下载进 `huggingface/`（`HF_HOME`），torch.hub 进 `torch/`（`TORCH_HOME`），其他手动下载的权重各占一个子目录。不在项目目录里另存权重。
 - **`lab` 用的 Python**：系统只有 3.6 和 3.7。用 uv 安装独立的 3.12，安装目录放在 `/public_bme/home/maxquan/envs/` 下，不放在 home。
 - **联网**：登录节点能访问 hf-mirror.com 和 GitHub，huggingface.co 不通。
 - **GPU**：A100 40G/80G 和 V100，共约 100 张，通常需要排队。
