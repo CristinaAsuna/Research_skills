@@ -48,7 +48,7 @@
 
 ## 集群（`cluster`）
 
-- **约束**：遵循 bme-cluster skill，包括计算节点不能联网、每人最多 2 个作业和 3 张 GPU、不写 `/public_bme2`。
+- **约束**：遵循 bme-cluster skill，包括计算节点不能联网、每人最多 2 个作业和 3 张 GPU、`/public_bme2` 只在用户明确指定路径时才写。
 - **路径**：
   - 总台仓库：`/public_bme/home/maxquan/Projects/coding_agent_repro`
   - 项目仓库：`/public_bme/home/maxquan/Projects/<项目>`，运行产物在项目的 `runs/` 下（或用 `LAB_RUNS_ROOT` 指向别处）
