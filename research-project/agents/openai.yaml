@@ -4,4 +4,4 @@ interface:
   default_prompt: "使用 $research-project 读 AGENTS.md、STATE.md 和当前卡片，告诉我当前主干和唯一问题，然后只做这张卡片；想到的其他实验写进搁置区。"
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

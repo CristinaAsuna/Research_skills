@@ -4,7 +4,9 @@
 
 ## 1. 新会话先做
 
-1. `git pull`，然后依次读：本文件、STATE.md、STATE.md 指向的那一张卡片。
+本项目按 skill `research-project` 和 `lab-machines` 管理。这两个 skill 不会自动加载：本文件提到它们时，直接读 `~/.agents/skills/<名称>/SKILL.md` 和其中引用的文件。
+
+1. 读 `~/.config/lab/machine` 确认本机，`lab status`（会先 pull），然后依次读：本文件、STATE.md、STATE.md 指向的那一张卡片。
 2. 需要细节时再读 docs/ 里对应的一份文档。不读 runs/、scratch/ 和其他实验的目录。
 3. 用户的要求超出当前卡片时，先指出来，再问是否新开卡片。
 

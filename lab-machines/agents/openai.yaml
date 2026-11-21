@@ -4,4 +4,4 @@ interface:
   default_prompt: "使用 $lab-machines 决定这个实验或下载在哪台机器上执行，先告诉我机器、目录和命令，执行后用 lab 命令记录。"
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

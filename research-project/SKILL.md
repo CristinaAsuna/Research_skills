@@ -1,6 +1,7 @@
 ---
 name: research-project
 description: "Set up and run a long-lived research project that coding agents execute, so the work stays on its trunk: one short STATE.md naming the current trunk and the single open question, experiment cards approved before any experiment code, one evaluation entry point, a fixed artifact contract, and a step-by-step procedure for migrating the trunk (moving a messy old project into the template, or promoting an experiment to the new trunk). Use when the user starts a new research codebase, wants to tidy or migrate an existing one, opens, queues or closes an experiment or ablation in a project that has STATE.md and EXPERIMENTS.md, or complains that agents run redundant experiments, drift from the main line or pile up caches and outputs. Not for choosing which machine runs a job or for the shared run record (use lab-machines)."
+disable-model-invocation: true
 ---
 
 # Research Project

@@ -1,6 +1,7 @@
 ---
 name: lab-machines
 description: "Coordinate research work across the user's three machines: a MacBook (orchestration only), a Windows PC with WSL2 (data hub, RTX 3060) and the BME Slurm cluster. Decide where an experiment or download runs, announce machine/directory/command before any automated execution, keep one shared git record of runs and ad-hoc work in any project repo (the `lab` command: run/log/journal/sync), and move large files without routing them through the Mac. Use whenever work involves running, downloading, syncing or locating data across these machines, or when the user asks what was done where. Use bme-cluster for Slurm specifics."
+disable-model-invocation: true
 ---
 
 # Lab Machines
@@ -17,6 +18,10 @@ The user works on three machines and has Codex installed on each, so it is easy 
 
 Exact hosts, paths and limits are in [references/machines.md](references/machines.md). Also read [pc-wsl](references/pc-wsl.md) before running on the PC, and [transfer](references/transfer.md) before moving data.
 
+## Scope
+
+These rules apply only when the user names this skill, or inside a repo whose own `AGENTS.md` opts in (the research-project template and the hub repo do). The user also uses Codex and Claude for unrelated work, so never write these rules into a global file such as `~/.codex/AGENTS.md` or `~/.claude/CLAUDE.md`. `scripts/remove_global_note.py <target>` removes a block left there by older installs.
+
 ## Rules
 
 1. **Know where you are.** Read `~/.config/lab/machine` (`mac`, `pc` or `cluster`). If it is missing, ask; never guess.
@@ -28,7 +33,7 @@ Exact hosts, paths and limits are in [references/machines.md](references/machine
    - Record ad-hoc work (downloads, env setup, cleanup) with `lab log "<what, where the outputs are>"`; `lab log --hub` writes to the hub even inside a project.
    - End every session with a commit and `lab sync`. It rebases onto other machines' commits and pushes; `lab` also does this automatically when a push is rejected, and stops cleanly on conflicts or a dirty tree.
    - Answer "what did I do where" with `lab journal --days N` and `lab runs [--active --machine --exp]`. Both pull first (`--no-pull` skips it).
-   - `scripts/install_lab_command.sh <python> <hub_repo>` installs the `lab` command and writes the hub path; `scripts/update_global_note.py <target> <machine> <hub_repo>` refreshes the lab-machines block in `~/.codex/AGENTS.md` or `~/.claude/CLAUDE.md`. Commit subjects are `kind[machine](exp): text`.
+   - `scripts/install_lab_command.sh <python> <hub_repo>` installs the `lab` command and writes the hub path; Commit subjects are `kind[machine](exp): text`.
 5. **Assets are registered.** Every dataset or weight downloaded or moved goes into the hub's `MACHINES.md` asset table, with source/revision, machine:path and size. Reuse before downloading, and never duplicate large files.
 6. **Large files bypass the Mac.** Each machine downloads what it needs from the mirror. PC↔cluster transfers go through the cluster transfer node. Only small results and figures travel through git.
 7. **Respect existing constraints.** Follow bme-cluster for anything on the cluster. On the PC, check free VRAM first, because a Zotero translation model shares the GPU. Do not stop it without permission.
