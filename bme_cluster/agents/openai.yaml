@@ -1,6 +1,6 @@
 interface:
   display_name: "BME Cluster"
-  short_description: "BME 集群限制、Slurm 与 GPU 作业工作流助手"
-  default_prompt: "使用 $bme-cluster 为我的任务准备符合 BME 集群规则的作业。"
+  short_description: "本地开发、SSH 编排与 BME 集群 Slurm 实验"
+  default_prompt: "使用 $bme-cluster 在本地开发，通过 SSH 准备 BME 集群环境和数据，并按我的要求提交、检查实验及分析结果。"
 policy:
   allow_implicit_invocation: false

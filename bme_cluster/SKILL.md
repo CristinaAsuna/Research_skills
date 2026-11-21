@@ -1,11 +1,21 @@
 ---
 name: bme-cluster
-description: Prepare, submit, monitor, and debug Slurm CPU/GPU jobs for the BME cluster while enforcing its node, network, storage, and per-user resource limits.
+description: Develop locally and run experiments on the BME cluster through SSH and Slurm; stage code, environments, datasets and weights, submit and inspect CPU/GPU jobs, and retrieve results within cluster limits.
 ---
 
 # BME Cluster
 
 Use this workflow for BME-cluster work.
+
+## Local Codex with remote execution
+
+When invoked on the user's local machine, keep planning, code editing, and experiment analysis local. Use the existing SSH alias `bme_login1` for short remote commands, and Slurm for compute. A second remote Codex process is optional, not a dependency of this workflow.
+
+Read [references/local-remote-workflow.md](references/local-remote-workflow.md) for SSH preflight, code snapshots, resumable downloads, submission records, status recovery, and selective result retrieval. Use this route when the user asks to code locally while using cluster GPUs, data or weights. Do not run the local Mac's project paths on Linux or copy its virtual environment to the cluster.
+
+An instruction to implement and run an experiment authorizes the necessary staging and submission within the stated resource scope. An instruction to prepare a job only does not authorize submission. Preserve explicit resource and budget constraints; do not infer an unrestricted experiment sweep.
+
+Login-process lifetime and Slurm job wall time are different constraints. Do not use `nohup`, `tmux`, a remote Codex daemon, or repeated relaunches to bypass the reported one-hour login-process limit. Use bounded, resumable login-node setup/download steps. Recheck actual Slurm limits before submission.
 
 ## Establish the execution context
 
@@ -18,9 +28,10 @@ Use this workflow for BME-cluster work.
 
 - Perform package installation, model/data downloads, and environment setup only on login nodes.
 - Before submitting a job, ensure its environment, packages, models, and input data already exist on cluster storage. Never put `pip install`, `conda install`, `wget`, `curl`, `git clone`, or remote model/data downloads in a batch script.
+- Before large downloads, check `df -h`, available user/group quota and estimated expanded size, including caches and checkpoints. A writable path is not evidence of sufficient capacity. If storage is insufficient, report it and use an already authorized alternative; do not delete data or fall back to `/public_bme2` on your own.
 - Use `/public_bme/home/maxquan/` as the project root: create projects, environments, logs, checkpoints, outputs, and other working files there.
 - Put large datasets only in `/public_bme/home/maxquan/Datasets/`. Reference this directory from projects; do not copy datasets into individual project directories unless explicitly requested.
-- `/public_bme2` is full: do not create, download, write, cache, log, checkpoint, or place temporary files anywhere under it. Do not select it as a fallback output or scratch location; use the `/public_bme/home/maxquan/` locations above instead.
+- `/public_bme2/bme-cuizhm/` is the research group's shared volume (the user's folder is `/public_bme2/bme-cuizhm/maxquan`) and is never a default location: do not create, download, cache, log, checkpoint or place temporary files under it unless the user explicitly names a path there for that task, and never pick it as a fallback when `/public_bme` is short of space. Reading existing data there is fine, and so is deleting the user's own old outputs after item-by-item approval. Use the `/public_bme/home/maxquan/` locations above by default.
 - Keep `/home_data/home/quanmx` (`~`) limited to essential configuration, including shell, SSH, Conda, and Codex configuration. Do not create or place project code, datasets, logs, checkpoints, outputs, or virtual environments there.
 - Read [references/cluster-guide.md](references/cluster-guide.md) for the source facts and queue limits.
 
@@ -43,18 +54,19 @@ Use this workflow for BME-cluster work.
 3. Follow the resource-selection and quota checks above. Treat `squeue --start` only as an estimate, not a guarantee.
 4. Leave the `-w` directive out unless a particular GPU/node is necessary. Inspect `pestat` or `sinfo -O Nodehost,Gres:.30,GresUsed:.45` first when a specific node, 80 GB GPU, or multiple GPUs are required.
 5. Set a distinct job name, output-log path, memory, wall time, conda environment, and command. Keep wall time at or below `120:00:00`.
-6. Generate a copy with `scripts/new-gpu-job.sh` when appropriate, review it, then submit with `sbatch <script>.sh` only when asked to submit.
+6. Generate a copy with `scripts/new-gpu-job.sh` when appropriate, review it, create the output/error directories relative to the submission working directory, and submit with `sbatch <script>.sh` when submission is within the user's request. For local orchestration, record a unique run ID and remote job ID as described in the remote workflow.
 7. Monitor with `squeue`, inspect with `scontrol show job <job-id>`, and cancel with `scancel <job-id>` only when asked.
 
 ## Create and submit CPU jobs
 
 1. Start from [assets/cpu-job-template.sh](assets/cpu-job-template.sh). Use `#SBATCH -p bme_cpu` and do not add `--gres`.
 2. `-n 8`, `--mem=32G`, and `-t 96:00:00` are conservative defaults, not CPU-queue limits. Adjust them when the user specifies requirements, and inspect `sinfo` before submitting.
-3. Generate a copy with `bash scripts/new-cpu-job.sh` when appropriate, review it, then submit with `sbatch <script>.sh` only when asked.
+3. Generate a copy with `bash scripts/new-cpu-job.sh` when appropriate, review it, ensure log directories exist, then submit with `sbatch <script>.sh` when submission is within the user's request.
 
 ## Diagnose failures
 
 - Check the `.out` log and `scontrol show job <job-id>` first.
+- A job disappearing from `squeue` does not prove success. Check `sacct` state and exit codes, application logs, and the expected artifacts. If accounting is unavailable, state that limitation rather than assuming completion.
 - For pending jobs, check queue and node availability with `squeue`, `pestat`, and `sinfo`; only then recommend a justified `-w` choice.
 - For download/import failures inside a job, move that setup step to a login node and resubmit after staging the artifacts.
 - For live loss/metrics, prefer TensorBoard, a logger, or an explicitly flushed text file; Slurm `.out` output can be delayed.

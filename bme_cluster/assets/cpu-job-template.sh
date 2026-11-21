@@ -11,6 +11,8 @@
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
+set -eo pipefail
+
 echo "${SLURM_JOB_NODELIST}"
 echo "start on $(date)"
 

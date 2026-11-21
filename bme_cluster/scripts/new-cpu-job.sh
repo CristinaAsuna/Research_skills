@@ -42,7 +42,7 @@ mkdir -p "$(dirname "$output")" "$(dirname "$output")/logs"
   printf '#SBATCH -J %s\n#SBATCH -N 1\n#SBATCH -p bme_cpu\n#SBATCH -n %s\n#SBATCH --mem=%s\n' "$job_name" "$cpu_count" "$memory"
   if [[ -n $node ]]; then printf '#SBATCH -w %s\n' "$node"; fi
   printf '#SBATCH -t %s\n#SBATCH -o %s/logs/%%x-%%j.out\n#SBATCH -e %s/logs/%%x-%%j.err\n\n' "$wall_time" "$(dirname "$output")" "$(dirname "$output")"
-  printf '%s\n' 'echo "${SLURM_JOB_NODELIST}"' 'echo "start on $(date)"'
+  printf '%s\n' 'set -eo pipefail' 'echo "${SLURM_JOB_NODELIST}"' 'echo "start on $(date)"'
   printf '%s\n%s\necho "end on $(date)"\n' "$env_activation" "$command"
 } > "$output"
 chmod u+x "$output"

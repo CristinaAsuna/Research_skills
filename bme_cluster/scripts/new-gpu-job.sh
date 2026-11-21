@@ -56,7 +56,7 @@ mkdir -p "$(dirname "$output")" "$(dirname "$output")/logs"
   printf '#SBATCH -J %s\n#SBATCH -N 1\n#SBATCH -p %s\n#SBATCH -n 8\n#SBATCH --mem=%s\n#SBATCH --gres=gpu:%s:%s\n' "$job_name" "$queue" "$memory" "$gpu_type" "$gpu_count"
   if [[ -n $node ]]; then printf '#SBATCH -w %s\n' "$node"; fi
   printf '#SBATCH -t %s\n#SBATCH -o %s/logs/%%x-%%j.out\n#SBATCH -e %s/logs/%%x-%%j.err\n\n' "$wall_time" "$(dirname "$output")" "$(dirname "$output")"
-  printf '%s\n' 'echo "${SLURM_JOB_NODELIST}"' 'nvidia-smi' 'echo "start on $(date)"'
+  printf '%s\n' 'set -eo pipefail' 'echo "${SLURM_JOB_NODELIST}"' 'nvidia-smi' 'echo "start on $(date)"'
   printf '%s\n%s\necho "end on $(date)"\n' "$env_activation" "$command"
 } > "$output"
 chmod u+x "$output"

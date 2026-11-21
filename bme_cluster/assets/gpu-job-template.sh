@@ -13,6 +13,8 @@
 #SBATCH -o logs/%x-%j.out
 #SBATCH -e logs/%x-%j.err
 
+set -eo pipefail
+
 echo "${SLURM_JOB_NODELIST}"
 nvidia-smi
 echo "start on $(date)"
