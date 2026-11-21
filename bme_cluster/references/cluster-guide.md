@@ -17,6 +17,11 @@ Source: user-provided “BME Cluster Tutorial”, last updated 2025-11-02.
 | `/home_data/home/quanmx` (`~`) | Essential configuration only, such as shell, SSH, Conda, and Codex settings. Do not store source code, datasets, logs, checkpoints, outputs, or virtual environments here. |
 | `/public_bme/home/maxquan/` | Project root. Store all project code, environments, logs, checkpoints, outputs, and other working files here. |
 | `/public_bme/home/maxquan/Datasets/` | Large datasets only. Reuse datasets from this central location rather than duplicating them per project. |
+| `/public_bme/home/maxquan/Datasets/models/` | Shared pretrained weights (`LAB_MODELS_DIR`): `huggingface/` is `HF_HOME`, `torch/` is `TORCH_HOME`, other weights one folder each. |
+| `/public_bme2/bme-cuizhm/maxquan` | The user's folder on the group's shared volume. Write only when the user names a path there for the task; reading is fine. |
+| `/tmp` | Login-node scratch only; compute nodes cannot see it. |
+
+Free space and quota change; check them when needed (`df -h <dir>`, `quota -s`, and a probe file) instead of relying on recorded numbers.
 
 ## Modules and environments
 

@@ -1,10 +1,23 @@
 # 三台机器的具体配置
 
-2026-11-14 只读调查所得，主机、空间和 GPU 占用会变化，使用前重新确认。
+这里只记不常变的事实：主机、路径和硬件型号。剩余空间、配额和显存占用随时在变，所以不写进来，用到时按 SKILL.md 规则 8 现场检查。
+
+## 各机器可写的目录
+
+| 机器 | 目录 | 放什么 | 条件 |
+|---|---|---|---|
+| mac | `/Users/max/codebase/<项目>` | 代码、文档、小结果和图 | 不放数据、权重和缓存 |
+| pc | `~/lab`（WSL ext4） | 项目仓库、`envs/` 环境、`assets/` 热数据、运行产物 | 默认位置 |
+| pc | `/mnt/d/vscode_workplace/brainstorm/models` | 权重库（作为 `LAB_MODELS_DIR`） | 新权重也放这里 |
+| pc | `/mnt/d/lab-archive` | 冷归档 | 走 9p，大量小文件很慢 |
+| cluster | `/public_bme/home/maxquan/` 下的 `Projects/`、`Datasets/`、`Datasets/models/`（`LAB_MODELS_DIR`）、`envs/` | 项目、数据集、权重、环境 | 默认位置 |
+| cluster | `/public_bme2/bme-cuizhm/maxquan` | 课题组共享卷里的个人目录 | 只有用户为这次任务明确指定路径时才写；可以读；用户逐项确认后可以删自己的旧产物 |
+| cluster | `/home_data/home/quanmx`（`~`） | 只放配置：shell、SSH、conda、Codex | 不放代码、数据、产物和环境 |
+| cluster | `/tmp` | 登录节点上的临时文件 | 计算节点看不到 |
 
 ## Mac（`mac`）
 
-- 本机 926 GiB，不放数据、权重和缓存。
+- 不放数据、权重和缓存。
 - 总台仓库（资产表和零散操作日志）：`/Users/max/codebase/coding_agent_repro`；项目仓库在 `/Users/max/codebase/<项目>`。
 - skill 源码：`/Users/max/codebase/research_plugins/Research_skills`
   - `~/.claude/skills/` 下软链接到这里，供 Claude Code 使用；
@@ -25,10 +38,10 @@
 
 ## PC（`pc`，WSL2 Ubuntu 24.04）
 
-- **硬件**：Windows 11，内存 63.7 GB，其中 WSL 分到 40 GB 和 20 个核；GPU 为 RTX 3060 12 GB。Zotero 翻译模型常驻约 6 GB 显存，实际可用约 6 GB，运行前用 `nvidia-smi` 确认。
+- **硬件**：Windows 11，内存 63.7 GB，其中 WSL 分到 40 GB 和 20 个核；GPU 为 RTX 3060 12 GB。Zotero 翻译模型常驻，占用一部分显存，运行前用 `nvidia-smi` 查剩余显存。
 - **磁盘**：
-  - WSL ext4 虚拟盘：约 1 TB，读写快，剩约 950 GB。
-  - D: 盘：3.7 TB，剩约 2.7 TB。从 WSL 访问走 `/mnt/d`（9p），对大量小文件很慢，读大文件尚可。
+  - WSL ext4 虚拟盘：读写快。
+  - D: 盘：从 WSL 访问走 `/mnt/d`（9p），对大量小文件很慢，读大文件尚可。
 - **路径**：
 
   | 用途 | 路径 |

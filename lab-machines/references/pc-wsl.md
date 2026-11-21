@@ -15,7 +15,7 @@
    nvidia-smi --query-gpu=memory.used,memory.total --format=csv
    ```
 
-   Zotero 翻译模型常驻约 6 GB。剩余显存不够时，告诉用户并建议改到集群运行，不要擅自停掉翻译服务。
+   Zotero 翻译模型常驻，占用一部分显存。剩余显存不够时，告诉用户并建议改到集群运行，不要擅自停掉翻译服务。
 2. 用 `~/lab/envs/main/bin/python`。不要用 Windows 侧的 Python 3.14，也不要在全局安装 torch。
 3. 这台机器已有的规则要求缓存路径只对相关命令设置，所以不要把它们写进全局 shell 配置，每次运行时显式带上：
 
