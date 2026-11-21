@@ -27,5 +27,5 @@
 ## 注意
 
 - 不用 `--delete`，不覆盖目标端较新的文件；合并到已有目录时先 `--dry-run` 看清会覆盖什么。
-- 集群上的大文件默认只写 `/public_bme/home/maxquan/`；`/public_bme2` 只有用户为这次任务明确指定路径时才写（见 machines.md 的可写目录表）。写之前按 SKILL.md 规则 8 检查空间。
+- 集群上的大文件写到三个工作根目录之一（见 machines.md 的可写目录表），数据集和权重统一放 `/public_bme/home/maxquan/Datasets/`。写之前按 SKILL.md 规则 8 检查空间；不写家目录，除非用户同意。
 - 不要把 `.venv`、conda 环境、`.git` 或密钥同步到另一台机器，各机器在本机重建环境。

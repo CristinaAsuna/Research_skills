@@ -10,9 +10,10 @@
 | pc | `~/lab`（WSL ext4） | 项目仓库、`envs/` 环境、`assets/` 热数据、运行产物 | 默认位置 |
 | pc | `/mnt/d/vscode_workplace/brainstorm/models` | 权重库（作为 `LAB_MODELS_DIR`） | 新权重也放这里 |
 | pc | `/mnt/d/lab-archive` | 冷归档 | 走 9p，大量小文件很慢 |
-| cluster | `/public_bme/home/maxquan/` 下的 `Projects/`、`Datasets/`、`Datasets/models/`（`LAB_MODELS_DIR`）、`envs/` | 项目、数据集、权重、环境 | 默认位置 |
-| cluster | `/public_bme2/bme-cuizhm/maxquan` | 课题组共享卷里的个人目录 | 只有用户为这次任务明确指定路径时才写；可以读；用户逐项确认后可以删自己的旧产物 |
-| cluster | `/home_data/home/quanmx`（`~`） | 只放配置：shell、SSH、conda、Codex | 不放代码、数据、产物和环境 |
+| cluster | `/public_bme/home/maxquan/` | 工作根目录 1：项目、环境、日志、产物；另有共享的 `Datasets/` 和 `Datasets/models/`（`LAB_MODELS_DIR`） | 三个工作根目录按现场测得的空间选一个；已有项目留在原处 |
+| cluster | `/public_bme2/bme-cuizhm/maxquan/` | 工作根目录 2（课题组共享卷） | 同上 |
+| cluster | `/public/home/quanmx/` | 工作根目录 3 | 同上 |
+| cluster | `/home_data/home/quanmx`（`~`） | 全局配置和工具：shell、SSH、conda、Codex、已装的 skill、`lab` 命令 | 写入前要用户同意；不放项目代码、数据、产物和项目环境 |
 | cluster | `/tmp` | 登录节点上的临时文件 | 计算节点看不到 |
 
 ## Mac（`mac`）
@@ -61,7 +62,7 @@
 
 ## 集群（`cluster`）
 
-- **约束**：遵循 bme-cluster skill，包括计算节点不能联网、每人最多 2 个作业和 3 张 GPU、`/public_bme2` 只在用户明确指定路径时才写。
+- **约束**：遵循 bme-cluster skill，包括计算节点不能联网、每人最多 2 个作业和 3 张 GPU；项目可以放在三个工作根目录中的任一个，按现场测得的空间选择；数据集和权重统一放 `/public_bme/home/maxquan/Datasets/`；写家目录要用户同意。
 - **路径**：
   - 总台仓库：`/public_bme/home/maxquan/Projects/coding_agent_repro`
   - 项目仓库：`/public_bme/home/maxquan/Projects/<项目>`，运行产物在项目的 `runs/` 下（或用 `LAB_RUNS_ROOT` 指向别处）

@@ -14,14 +14,15 @@ Source: user-provided “BME Cluster Tutorial”, last updated 2025-11-02.
 
 | Location | Use |
 | --- | --- |
-| `/home_data/home/quanmx` (`~`) | Essential configuration only, such as shell, SSH, Conda, and Codex settings. Do not store source code, datasets, logs, checkpoints, outputs, or virtual environments here. |
-| `/public_bme/home/maxquan/` | Project root. Store all project code, environments, logs, checkpoints, outputs, and other working files here. |
+| `/home_data/home/quanmx` (`~`) | Global configuration and tools only (shell, SSH, conda, Codex, installed skills, `lab`). Writing here needs the user's permission. No project code, datasets, logs, checkpoints, outputs or project environments. |
+| `/public_bme/home/maxquan/` | Work root 1: projects, environments, logs, checkpoints, outputs. |
+| `/public_bme2/bme-cuizhm/maxquan/` | Work root 2, on the research group's shared volume. Same uses as root 1. |
+| `/public/home/quanmx/` | Work root 3. Same uses as root 1. |
 | `/public_bme/home/maxquan/Datasets/` | Large datasets only. Reuse datasets from this central location rather than duplicating them per project. |
 | `/public_bme/home/maxquan/Datasets/models/` | Shared pretrained weights (`LAB_MODELS_DIR`): `huggingface/` is `HF_HOME`, `torch/` is `TORCH_HOME`, other weights one folder each. |
-| `/public_bme2/bme-cuizhm/maxquan` | The user's folder on the group's shared volume. Write only when the user names a path there for the task; reading is fine. |
 | `/tmp` | Login-node scratch only; compute nodes cannot see it. |
 
-Free space and quota change; check them when needed (`df -h <dir>`, `quota -s`, and a probe file) instead of relying on recorded numbers.
+The three work roots are separate filesystems whose free space and quota change. Pick one by checking `df -h <root>`, `quota -s` and a probe file at the time of use (see SKILL.md); keep an existing project where it is. Datasets and weights stay in the shared `Datasets/` locations whichever root a project uses.
 
 ## Modules and environments
 

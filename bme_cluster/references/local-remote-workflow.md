@@ -26,7 +26,7 @@
 
 ```bash
 ssh -T -o BatchMode=yes -o ConnectTimeout=10 bme_login1 \
-  'hostname; id -un; command -v sbatch; command -v rsync; df -h /public_bme/home/maxquan; squeue -u "$USER"'
+  'hostname; id -un; command -v sbatch; command -v rsync; df -h /public_bme/home/maxquan /public_bme2/bme-cuizhm/maxquan /public/home/quanmx; quota -s; squeue -u "$USER"'
 ```
 
 `BatchMode=yes` 要求已有非交互认证。若失败，先由用户完成 SSH/密钥解锁或集群要求的认证；不要保存密码、关闭主机密钥检查或把认证凭据写入项目。命令被本地沙箱拒绝时，使用当前产品正常的审批机制，不要建议关闭全局沙箱。
@@ -49,9 +49,8 @@ ssh -T -o BatchMode=yes -o ConnectTimeout=10 bme_login1 \
   .cluster/runs/<run-id>.json      # 作业记录，不含密码或 token
   results/<run-id>/                # 回传的小结果
 
-/public_bme/home/maxquan/<project>/
+<工作根目录>/<project>/       # 三个工作根目录之一，按现场测得的空间选（见 SKILL.md）
   envs/                           # 远端 Linux 环境，安装时明确指定 prefix
-  weights/                        # 共享权重与缓存，避免重复下载
   runs/<run-id>/
     code/                         # 该次实验专用代码与配置快照
     jobs/                         # sbatch 脚本
@@ -59,14 +58,15 @@ ssh -T -o BatchMode=yes -o ConnectTimeout=10 bme_login1 \
     outputs/                      # 含指标及 checkpoint
     submission.txt                # sbatch 原始响应
 
-/public_bme/home/maxquan/Datasets/<dataset>/
+/public_bme/home/maxquan/Datasets/<dataset>/          # 数据集统一放这里
+/public_bme/home/maxquan/Datasets/models/<weights>/   # 权重统一放这里（LAB_MODELS_DIR）
 ```
 
 不要同步 Mac 的 `.venv`、Conda 环境、`.git`、数据集、权重、checkpoint、密钥或 `.env`。在远端创建兼容 Linux/CUDA 的环境，并保留环境锁定信息。将 `HF_HOME`、`TORCH_HOME`、`XDG_CACHE_HOME`、`TMPDIR` 等实际使用的缓存/临时目录显式置于允许的存储下，提前创建目录；大数据缓存也应在 `Datasets` 下。
 
 ## 同步代码，保留每次实验版本
 
-每轮用新的 `<run-id>`；只使用字母、数字、连字符、下划线构造项目名和运行 ID。远端目录必须在 `/public_bme/home/maxquan/` 下。数据路径采用集群绝对路径，不把本地路径直接写进 Linux 配置。
+每轮用新的 `<run-id>`；只使用字母、数字、连字符、下划线构造项目名和运行 ID。远端目录必须在三个工作根目录之一的下面：`/public_bme/home/maxquan/`、`/public_bme2/bme-cuizhm/maxquan/` 或 `/public/home/quanmx/`。数据路径采用集群绝对路径，不把本地路径直接写进 Linux 配置。
 
 优先 rsync 明确的代码/配置目录或经过审阅的文件清单。先运行 `rsync --dry-run` 检查包含范围；普通源代码可走登录节点，大文件按原 skill 使用传输节点 `10.15.49.36:22112`，先确认该节点的认证及共享挂载，不猜测 SSH 别名。不要默认使用 `--delete`，也不要覆盖正在运行作业的代码快照。
 
@@ -81,7 +81,7 @@ ssh -T -o BatchMode=yes -o ConnectTimeout=10 bme_login1 \
 ```bash
 # 远端 download.sh 是已检查的具体下载脚本；命令示例，不会自动执行。
 ssh -T bme_login1 \
-  'timeout --signal=TERM --kill-after=30s 45m bash /public_bme/home/maxquan/PROJECT/download.sh'
+  'timeout --signal=TERM --kill-after=30s 45m bash <工作根目录>/PROJECT/download.sh'
 ```
 
 先探测 `command -v timeout`。不存在时用下载器自身的时间限制或拆成短步骤，不依赖本地 SSH 超时去杀远端进程。45 分钟是本地工作流的保守分段值，不是集群官方政策。
@@ -110,7 +110,7 @@ ssh -T bme_login1 \
 ```bash
 ssh -T bme_login1 'bash -s' <<'REMOTE'
 set -euo pipefail
-cd /public_bme/home/maxquan/PROJECT/runs/RUN_ID
+cd <工作根目录>/PROJECT/runs/RUN_ID
 mkdir -p logs outputs
 # 在进入此步骤前已检查配额；该次运行不得并行重复提交。
 test ! -e submission.txt
