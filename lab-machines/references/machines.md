@@ -7,10 +7,10 @@
 | 机器 | 目录 | 放什么 | 条件 |
 |---|---|---|---|
 | mac | `/Users/max/codebase/<项目>` | 代码、文档、小结果和图 | 不放数据、权重和缓存 |
-| pc | `~/lab`（WSL ext4） | 项目仓库、`envs/` 环境、`assets/` 热数据、运行产物 | 默认位置 |
+| pc | `~/lab`（WSL ext4） | 项目仓库、`envs/` 环境、`assets/` 热数据（数据集在 `assets/datasets/`，作为 `LAB_DATA_DIR`）、运行产物 | 默认位置 |
 | pc | `/mnt/d/vscode_workplace/brainstorm/models` | 权重库（作为 `LAB_MODELS_DIR`） | 新权重也放这里 |
 | pc | `/mnt/d/lab-archive` | 冷归档 | 走 9p，大量小文件很慢 |
-| cluster | `/public_bme/home/maxquan/` | 工作根目录 1：项目、环境、日志、产物；另有共享的 `Datasets/` 和 `Datasets/models/`（`LAB_MODELS_DIR`） | 三个工作根目录按现场测得的空间选一个；已有项目留在原处 |
+| cluster | `/public_bme/home/maxquan/` | 工作根目录 1：项目、环境、日志、产物；另有共享的 `Datasets/Data/`（`LAB_DATA_DIR`）和 `Datasets/models/`（`LAB_MODELS_DIR`） | 三个工作根目录按现场测得的空间选一个；已有项目留在原处 |
 | cluster | `/public_bme2/bme-cuizhm/maxquan/` | 工作根目录 2（课题组共享卷） | 同上 |
 | cluster | `/public/home/quanmx/` | 工作根目录 3 | 同上 |
 | cluster | `/home_data/home/quanmx`（`~`） | 全局配置和工具：shell、SSH、conda、Codex、已装的 skill、`lab` 命令 | 写入前要用户同意；不放项目代码、数据、产物和项目环境 |
@@ -50,9 +50,9 @@
   | 总台仓库 | `~/lab/coding_agent_repro` |
   | 项目仓库 | `~/lab/<项目>` |
   | 运行产物 | 项目的 `runs/`（被 git 忽略）；想集中存放就设 `LAB_RUNS_ROOT=~/lab/runs` |
-  | 热数据与缓存（数据集、HF 缓存） | `~/lab/assets`，放在 ext4 上 |
+  | 热数据与缓存 | `~/lab/assets`，放在 ext4 上；数据集在 `~/lab/assets/datasets/<名称>/`（`LAB_DATA_DIR`） |
   | Python 环境 | `~/lab/envs/main`（uv 建的 venv，torch CUDA） |
-  | 已有权重库（保留并继续使用） | `/mnt/d/vscode_workplace/brainstorm/models`，含 huggingface、torchhub、dit、sit |
+  | 权重库（`LAB_MODELS_DIR`） | `/mnt/d/vscode_workplace/brainstorm/models`，含 huggingface（`HF_HOME`）、torchhub、dit、sit |
   | 冷归档 | `/mnt/d/lab-archive` |
 
 - **联网**：huggingface.co 不通，使用 `HF_ENDPOINT=https://hf-mirror.com`；GitHub 可以访问。
@@ -66,7 +66,7 @@
 - **路径**：
   - 总台仓库：`/public_bme/home/maxquan/Projects/coding_agent_repro`
   - 项目仓库：`/public_bme/home/maxquan/Projects/<项目>`，运行产物在项目的 `runs/` 下（或用 `LAB_RUNS_ROOT` 指向别处）
-  - 数据集：`/public_bme/home/maxquan/Datasets`
+  - 数据集：`/public_bme/home/maxquan/Datasets/Data/<名称>/`，`~/.bashrc` 里设为 `LAB_DATA_DIR`。CBCT 的旧数据在 `Datasets/bme/`，留在原处。
   - 权重：`/public_bme/home/maxquan/Datasets/models`，`~/.bashrc` 里设为 `LAB_MODELS_DIR`。hf 下载进 `huggingface/`（`HF_HOME`），torch.hub 进 `torch/`（`TORCH_HOME`），其他手动下载的权重各占一个子目录。不在项目目录里另存权重。
 - **`lab` 用的 Python**：系统只有 3.6 和 3.7。用 uv 安装独立的 3.12，安装目录放在 `/public_bme/home/maxquan/envs/` 下，不放在 home。
 - **联网**：登录节点能访问 hf-mirror.com 和 GitHub，huggingface.co 不通。

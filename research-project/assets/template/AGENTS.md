@@ -9,7 +9,7 @@
 1. 读 `~/.config/lab/machine` 确认本机，`lab status`（会先 pull），然后依次读：本文件、STATE.md、STATE.md 指向的那一张卡片。
 2. 需要细节时再读 docs/ 里对应的一份文档。不读 runs/、scratch/ 和其他实验的目录。
 3. 用户的要求超出当前卡片时，先指出来，再问是否新开卡片。
-4. 写 docs/DATA.md、计划下载或预处理之前，先读总台 MACHINES.md 的资产表（总台路径见 `~/.config/lab/hub`），再到目标机器上 `ls` 它的数据目录。两处都没有才计划下载；找到没登记的，先补登记。
+4. 写 docs/DATA.md、计划下载或预处理之前，先读总台 MACHINES.md 的资产表（总台路径见 `~/.config/lab/hub`），再到目标机器上 `ls` 它的数据目录。两处都没有才计划下载；找到没登记的，先补登记。数据集放 `$LAB_DATA_DIR/<名称>/`，权重放 `$LAB_MODELS_DIR`，都不放进项目目录。
 
 ## 2. 文件地图
 

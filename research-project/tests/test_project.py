@@ -309,6 +309,29 @@ class ProjectTest(unittest.TestCase):
         self.assertNotIn("冗余产物", run("check", "--skip-audit", "--root", str(self.root)).stdout)
 
 
+    def test_check_warns_about_data_inside_the_project(self):
+        big = self.root / "data" / "imagenet"
+        big.mkdir(parents=True)
+        with open(big / "train.tar", "wb") as handle:
+            handle.truncate(2 * 1024 ** 3)
+        out = run("check", "--skip-audit", "--root", str(self.root)).stdout
+        self.assertIn("data/ 是普通目录", out)
+        self.assertIn("data 有 2.0G", out)
+
+    def test_check_allows_data_link_and_big_runs(self):
+        target = Path(self.tmp.name) / "shared" / "imagenet"
+        target.mkdir(parents=True)
+        with open(target / "train.tar", "wb") as handle:
+            handle.truncate(2 * 1024 ** 3)
+        (self.root / "data").symlink_to(target)
+        (self.root / "runs" / "x").mkdir(parents=True)
+        with open(self.root / "runs" / "x" / "best.pt", "wb") as handle:
+            handle.truncate(2 * 1024 ** 3)
+        out = run("check", "--skip-audit", "--root", str(self.root)).stdout
+        self.assertNotIn("data/ 是普通目录", out)
+        self.assertNotIn("G：数据集放", out)
+
+
 class SubProjectTest(unittest.TestCase):
     """Several projects share one repository, e.g. reproduce_idea/paper_repro/{repa,rae}."""
 
