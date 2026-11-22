@@ -56,7 +56,8 @@ class Base(unittest.TestCase):
         self.tmp.cleanup()
 
     def lab(self, *args, **kw):
-        return run(*args, cwd=self.root, **kw)
+        kw.setdefault("cwd", self.root)
+        return run(*args, **kw)
 
     def push_from_other(self, message, path=None, text=None):
         sh(self.other, "git", "pull", "-q", "--rebase")
@@ -110,6 +111,24 @@ class RunTest(Base):
         sh(self.root, "git", "commit", "-q", "-am", "stop ignoring runs")
         result = self.lab("run", "start", "E2", "--no-push", "--", "echo", machine="pc")
         self.assertIn("没有被 git 忽略", result.stdout)
+
+    def test_sub_project_runs_land_in_its_own_runs_dir(self):
+        sub = self.root / "paper_repro" / "repa"
+        sub.mkdir(parents=True)
+        for name in ("STATE.md", "EXPERIMENTS.md"):
+            (sub / name).write_text("x\n", encoding="utf-8")
+        (sub / ".gitignore").write_text("/runs/\n", encoding="utf-8")
+        sh(self.root, "git", "add", "-A")
+        sh(self.root, "git", "commit", "-q", "-m", "sub-project")
+        started = self.lab("run", "start", "001-trunk", "--no-push", "--", "echo", machine="pc", cwd=sub)
+        self.assertEqual(started.returncode, 0, started.stderr)
+        self.assertNotIn("WARN", started.stdout)
+        record = json.loads(next((self.root / ".lab" / "runs").glob("*.json")).read_text(encoding="utf-8"))
+        self.assertEqual(record["project"], "paper_repro/repa")
+        self.assertTrue(Path(record["run_dir"]).is_relative_to((sub / "runs").resolve()))
+        self.assertIn(f"cd {Path(record['code_dir']) / 'paper_repro/repa'}", started.stdout)
+        self.assertTrue((Path(record["code_dir"]) / "paper_repro/repa/STATE.md").is_file())
+        self.assertFalse((Path(record["code_dir"]) / "train.py").exists())  # other code stays out
 
     def test_runs_root_can_be_moved_outside_the_repo(self):
         outside = self.base / "runs_root"

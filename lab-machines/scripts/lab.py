@@ -179,6 +179,20 @@ def dirty_code(top: Path) -> list[str]:
     return [p for p in paths if not p.endswith(".md")]
 
 
+def project_dir(top: Path) -> Path:
+    """The research project the cwd is in: the nearest directory up to the repo root holding
+    STATE.md and EXPERIMENTS.md (a sub-project in a shared repo), else the repo root."""
+    here = Path.cwd().resolve()
+    if here != top and top not in here.parents:
+        return top
+    for path in (here, *here.parents):
+        if (path / "STATE.md").is_file() and (path / "EXPERIMENTS.md").is_file():
+            return path
+        if path == top:
+            break
+    return top
+
+
 def cmd_run_start(args: argparse.Namespace) -> int:
     top = find_root(args)
     command = " ".join(args.cmd).strip()
@@ -195,7 +209,9 @@ def cmd_run_start(args: argparse.Namespace) -> int:
     commit = git(top, "rev-parse", "HEAD").stdout.strip()
     if not commit:
         sys.exit("仓库还没有任何提交。")
-    runs_root = Path(os.environ.get("LAB_RUNS_ROOT") or (top / "runs")).expanduser()
+    project = project_dir(top)
+    prefix = project.relative_to(top).as_posix()
+    runs_root = Path(os.environ.get("LAB_RUNS_ROOT") or (project / "runs")).expanduser()
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     run_id = f"{args.exp}-{stamp}-{me}"
     run_dir = runs_root / args.exp / run_id
@@ -206,7 +222,8 @@ def cmd_run_start(args: argparse.Namespace) -> int:
     if probe and git(top, "check-ignore", "-q", probe).returncode != 0:
         print(f"WARN {run_dir} 在仓库内但没有被 git 忽略：把 /runs/ 写进 .gitignore，或设置 LAB_RUNS_ROOT。")
     run_dir.mkdir(parents=True, exist_ok=False)
-    archive = subprocess.run(["git", "archive", "--format=tar", "HEAD"], cwd=str(top), capture_output=True)
+    archive = subprocess.run(["git", "archive", "--format=tar", "HEAD"] + ([] if prefix == "." else [prefix]),
+                             cwd=str(top), capture_output=True)
     if archive.returncode != 0:
         sys.exit(archive.stderr.decode(errors="replace").strip())
     code_dir = run_dir / "code"
@@ -215,7 +232,7 @@ def cmd_run_start(args: argparse.Namespace) -> int:
             tar.extractall(str(code_dir), filter="data")
         except TypeError:  # Python without extraction filters
             tar.extractall(str(code_dir))
-    record = {"run_id": run_id, "exp": args.exp, "repo": top.name, "machine": me, "host": socket.gethostname(),
+    record = {"run_id": run_id, "exp": args.exp, "repo": top.name, "project": prefix, "machine": me, "host": socket.gethostname(),
               "run_dir": str(run_dir.resolve()), "code_dir": str(code_dir.resolve()), "command": command,
               "commit": commit, "started": dt.datetime.now().isoformat(timespec="seconds"), "ended": None,
               "status": "running", "job": args.job, "note": args.note}
@@ -225,7 +242,8 @@ def cmd_run_start(args: argparse.Namespace) -> int:
     print(f"代码快照（提交 {commit[:8]}）：{code_dir}")
     commit_and_push(top, f"run[{me}]({args.exp}): start {run_id}", [path], push=not args.no_push)
     if not args.job:
-        print(f"建议在 tmux 中启动：tmux new -d -s {run_id} 'cd {code_dir} && {command} 2>&1 | tee ../run.log'")
+        work = code_dir if prefix == "." else code_dir / prefix
+        print(f"建议在 tmux 中启动：tmux new -d -s {run_id} 'cd {work} && {command} 2>&1 | tee {run_dir}/run.log'")
     return 0
 
 
